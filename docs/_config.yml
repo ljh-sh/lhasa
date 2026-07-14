@@ -1,0 +1,33 @@
+# GitHub Pages config for ljh-sh/lhasa — Jekyll ("legacy" build_type).
+# Markdown content uses Kramdown; pages declare lang + section in
+# their YAML front-matter so the shared header include can render the
+# section-nav + lang-switch from per-language data in _data/sections.yml.
+
+title: "lhasa"
+description: "Free LHA/LZH/PMarc decoder + liblhasa, distributed as a single statically-linked binary for Linux/macOS/Windows. ISC upstream by Simon Howard; vendored by ljh-sh."
+
+# Site served at https://<owner>.github.io/lhasa/
+baseurl: /lhasa
+url:    https://ljh-sh.github.io
+
+markdown: kramdown
+highlighter: rouge
+
+# We don't use the default minima theme — we ship our own styles.css.
+# Setting theme to "" disables the default layout.
+theme: null
+
+# Custom Liquid filters / includes work without a theme.
+
+# Make every .md file render through _layouts/page.html.
+defaults:
+  - scope: { type: "page" }
+    values:
+      layout: page
+
+# Ignore vendor/build outputs so they're never published.
+exclude:
+  - _site
+  - .sass-cache
+  - node_modules
+  - vendor

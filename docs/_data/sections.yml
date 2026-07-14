@@ -1,0 +1,51 @@
+# Per-language section order and labels for the site-wide header.
+#
+# Each language has the same logical order of sections but labels in
+# the language's own script. Last entry is the "↑ home" link.
+#
+# The header at docs/_includes/header.html iterates these and bolds
+# the entry whose key matches the current page's `section` front-matter.
+
+en:
+  sections: [install, usage, formats, audit, security, build-audit]
+  labels:
+    - install
+    - usage
+    - formats
+    - audit
+    - security
+    - build audit
+    - "↑ home"
+
+zh-CN:
+  sections: [install, usage, formats, audit, security, build-audit]
+  labels:
+    - 安装
+    - 用法
+    - 格式
+    - 审计
+    - 安全
+    - 构建审计
+    - "↑ 首页"
+
+zh-TW:
+  sections: [install, usage, formats, audit, security, build-audit]
+  labels:
+    - 安裝
+    - 用法
+    - 格式
+    - 稽核
+    - 資安
+    - 建置稽核
+    - "↑ 首頁"
+
+ja:
+  sections: [install, usage, formats, audit, security, build-audit]
+  labels:
+    - インストール
+    - 使い方
+    - フォーマット
+    - 監査
+    - セキュリティ
+    - ビルド監査
+    - "↑ ホーム"

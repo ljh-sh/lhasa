@@ -1,0 +1,70 @@
+{% comment %}
+  Site-wide header: section nav on the left, language switcher on the
+  right. Driven entirely by `page.lang` and `page.section` front-matter
+  plus per-language label data in `_data/sections.yml`.
+
+  Conventions:
+    page.lang      = "en" | "zh-CN" | "zh-TW" | "ja"
+    page.section   = "install" | "usage" | ... | "build-audit" | "home"
+    page.collection = "home" only when this is the index page
+
+  On the homepage (section == home), the "↑ home" entry is bold;
+  on a section page, the matching section is bold and "↑ home" is a
+  plain link. Lather rinse repeat for the language switch.
+{% endcomment %}
+
+{% assign lang_code = page.lang | default: 'en' %}
+{% assign section = page.section | default: 'home' %}
+{% assign is_top_level = page.is_top_level | default: true %}
+{% assign prefix = '' %}
+{% if is_top_level == false %}
+  {% assign prefix = '../' %}
+{% endif %}
+
+{% comment %} Determine if this is the per-language homepage: section == 'home' AND a per-language page (lang_code != en OR we have a /<lang>/ path) {% endcomment %}
+{% assign is_home = false %}
+{% if section == 'home' %}
+  {% assign is_home = true %}
+{% endif %}
+
+<header class="page-header">
+  <nav class="section-nav">
+    {% assign labels_for_lang = site.data.sections[lang_code].labels %}
+    {% assign sections_for_lang = site.data.sections[lang_code].sections %}
+
+    {% for sec in sections_for_lang %}
+      {% assign i = forloop.index0 %}
+      {% assign sec_label = labels_for_lang[i] %}
+      {% if sec == section %}
+        <strong>{{ sec_label }}</strong>
+      {% else %}
+        <a href="{{ prefix }}{{ sec }}.html">{{ sec_label }}</a>
+      {% endif %}
+      {% unless forloop.last %} · {% endunless %}
+    {% endfor %}
+
+    {% assign home_index = 6 %}
+    {% assign home_label = labels_for_lang[home_index] %}
+    · <a href="{{ prefix }}index.html">{{ home_label }}</a>
+  </nav>
+
+  <div class="lang-switch">
+    {% assign langs = "en,zh-CN,zh-TW,ja" | split: "," %}
+    {% for lang_target in langs %}
+      {% assign href = prefix %}
+      {% if lang_target == 'en' %}
+        {{ href }}{{ section }}.html
+      {% else %}
+        {{ href }}{{ lang_target }}/{{ section }}.html
+      {% endif %}
+      {% if lang_target == section %}{% assign switch_label = lang_target %}{% endif %}
+
+      {% if lang_target == lang_code %}
+        <strong>{{ lang_target }}</strong>
+      {% else %}
+        <a href="{{ href }}">{{ lang_target }}</a>
+      {% endif %}
+      {% unless forloop.last %} · {% endunless %}
+    {% endfor %}
+  </div>
+</header>
