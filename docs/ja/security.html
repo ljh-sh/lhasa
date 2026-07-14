@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>セキュリティ監査 —— lhasa</title>
+<meta name="description" content="vendored fragglet/lhasa のソースレベル監査：デコーダ攻撃面、CVE 履歴、ファジング対応、決定論的ビルド。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="../install.html">インストール</a> · <a href="../usage.html">使い方</a> · <a href="../formats.html">フォーマット</a> · <strong>セキュリティ</strong> · <a href="../build-audit.html">ビルド監査</a> · <a href="../index.html">↑ ホーム</a></nav>
+    <div class="lang-switch"><a href="../security.html">en</a> · <a href="../zh-CN/security.html">zh-CN</a> · <a href="../zh-TW/security.html">zh-TW</a> · <strong>ja</strong></div>
+</header>
+
+
+<section class="hero">
+    <h1>セキュリティ監査</h1>
+    <p class="tagline">vendored <code>fragglet/lhasa</code> デコーダのソースレベル監査。</p>
+</section>
+
+<section id="surface">
+    <h2>攻撃面</h2>
+    <p>lhasa は <b>デコーダ</b>。攻撃面は基本的に LHA 形式の
+        パーサ + 少数の出力パスだけ。エンコーダ+デコーダ
+        （元の <code>lha</code> バイナリ）に比べてずっと小さい。</p>
+    <ul>
+        <li><b>エンコーダなし</b>——入力アーカイブが子プロセスを
+            起動したり、予測可能な場所に書き込んだり、ユーザの
+            ために動作することはあり得ない。</li>
+        <li><b>静的ビルド</b>——動的依存なし、共有ライブラリなし、
+            コンストラクタ/デストラクタ順バグなし。</li>
+        <li><b><code>lha l</code> / <code>lha t</code> / <code>lha p</code>
+            はファイルシステム副作用なし</b>——読み取り専用。副作用は
+            明示的な <code>lha x</code> でだけ起きる。</li>
+    </ul>
+</section>
+
+<section id="cve">
+    <h2>CVE 履歴</h2>
+    <p>2026-07-15 時点で <code>fraggle / lhasa</code> または
+        vendored 派生に対する公開 CVE はない。アップストリーム NEWS に
+        記載されている主な修正：</p>
+    <ul>
+        <li><b>v0.6.0 (2026-06-17)</b>：<code>-pm2-</code> デコーダの
+            <code>copy_decode[]</code> 読み取りオーバーフロー。
+            悪用可能とは考えられていないが修正済み
+            （Yukimura / @damseleng が報告）。</li>
+        <li><b>v0.5.0 (2025-08-01)</b>：list 出力の微調整
+            （おもに表向き）。</li>
+    </ul>
+</section>
+
+<section id="fuzz">
+    <h2>ファジング準備状況</h2>
+    <p>アップストリームは
+        <a href="https://github.com/fragglet/lhasa/blob/master/test/fuzzer.c">test/fuzzer.c</a>
+        に libFuzzer ハーネスを用意している。
+        <code>make check</code> はファジング corpus + 歴史的回帰サンプルを
+        回す。</p>
+    <p>ljh-sh/lhasa の CI は継続的ファジングには**まだ**接続していない
+        ——次のステップは OSS-Fuzz の統合（アップストリームが入れば）。
+        0.6.0 のオーバーフロー修正は、ファジングが実際にプロダクション
+        コードに届いている最新の証拠。</p>
+</section>
+
+<section id="supply">
+    <h2>サプライチェーン</h2>
+    <ul>
+        <li><b>Vendoring</b>：<code>upstream/lhasa/</code> は
+            <code>git subtree</code> スナップショット。NOTICE.md に
+            merge commit と re-vendor コマンド。</li>
+        <li><b>パッチ</b>：ゼロ。vendored ツリーはアップストリーム
+            <code>75ed835</code> と完全一致。</li>
+        <li><b>ビルド決定論</b>：<a href="build-audit.html">ビルド監査</a>
+            を参照。同じソース + 同じ runner + 同じツールチェーン =
+            再現可能な SHA256SUMS。</li>
+    </ul>
+</section>
+
+<section id="risk-model">
+    <h2>脅威モデル &amp; 残留リスク</h2>
+    <ul>
+        <li><b>悪意ある .lzh アーカイブ</b>：攻撃面は小さい
+            （decoder-only、シェルインジェクションパスなし）。緩和策：
+            展開前に <code>lha t</code>。可能なら SHA256 で照合。</li>
+        <li><b><code>lha x</code> のパストラバーサル</b>：現代の
+            lhasa は一般的なケース（絶対パス、<code>..</code>）を処理。
+            信頼できないアーカイブを <code>lha x</code> する前に
+            <code>lha l</code> で確認を。</li>
+        <li><b>圧縮爆弾の増幅</b>：LZH 自体は zip のように巨大には
+            増幅しない。巨大サイズのものはなおサイズ確認を。</li>
+    </ul>
+    <p class="note">decoder-only 設計が中核的な安全性主張。lhasa は
+        危険なコンテンツを<em>生成</em>しない、アーカイブ内の既存のものを
+        レンダリングするだけ。</p>
+</section>
+
+<section id="disclosure">
+    <h2>脆弱性開示</h2>
+    <p>メール：<code>fragglet@gmail.com</code>（アップストリームメンテナー）。
+        ljh-sh/lhasa 配布特有の問題（CI、リリース成果物）には GitHub issue。</p>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

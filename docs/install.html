@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Install — lhasa</title>
+<meta name="description" content="One-line install of the free LZH decoder: x eget ljh-sh/lhasa, or apt install lhasa, or brew install lhasa, or build from upstream source.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><strong>install</strong> · <a href="usage.html">usage</a> · <a href="formats.html">formats</a> · <a href="security.html">security</a> · <a href="build-audit.html">build audit</a> · <a href="index.html">↑ home</a></nav>
+    <div class="lang-switch"><strong>en</strong> · <a href="zh-CN/install.html">zh-CN</a> · <a href="zh-TW/install.html">zh-TW</a> · <a href="ja/install.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>Install</h1>
+    <p class="tagline">Three install paths &mdash; static binary first,
+        distro package manager second, source build third.</p>
+</section>
+
+<section id="static">
+    <h2>1. Static binary (one line)</h2>
+    <p>The fastest and most portable install path. Use
+        <code>x eget</code> &mdash; x-cmd's wrapper around the upstream
+        GitHub release pipeline:</p>
+<pre><code>x eget ljh-sh/lhasa    # ~200 KB, zero deps, multi-arch static build</code></pre>
+    <p>The installed CLI is named <code>lha</code> (not <code>lhasa</code>
+        &mdash; the project deliberately mirrors the original LHa for
+        UNIX command). After install:</p>
+<pre><code>$ lha --help | head -1
+Lhasa v0.6.0 command line LHA tool  - Copyright (C) 2011-2025 Simon Howard</code></pre>
+
+    <h3>What the eget install does</h3>
+    <ul>
+        <li>Detects your platform (linux-musl / aarch64-macos /
+            x86_64-macos / x86_64-windows).</li>
+        <li>Downloads the matching tarball from
+            <code>github.com/ljh-sh/lhasa/releases/latest</code>.</li>
+        <li>Verifies the SHA256 against the upstream-published
+            <code>SHA256SUMS</code> (see <a href="build-audit.html">build audit</a>
+            for how the sums are produced).</li>
+        <li>Extracts <code>bin/lha</code> into
+            <code>~/.local/bin/lha</code>.</li>
+        <li>Does <b>not</b> touch anywhere outside
+            <code>~/.local/</code>. No sudo, no installer, no daemon.</li>
+    </ul>
+
+    <h3>Manual install from a release archive</h3>
+    <p>Grab the per-platform tarball/zip directly from
+        <a href="https://github.com/ljh-sh/lhasa/releases/latest">releases/latest</a>:</p>
+    <table>
+        <thead><tr><th>Platform</th><th>File</th><th>Linkage</th></tr></thead>
+        <tbody>
+            <tr><td>Linux x86_64</td>
+                <td><code>lhasa-x86_64-linux-musl.tar.gz</code></td>
+                <td>Static musl &mdash; runs on every Linux distro.</td></tr>
+            <tr><td>Linux ARM64</td>
+                <td><code>lhasa-aarch64-linux-musl.tar.gz</code></td>
+                <td>Static musl &mdash; aarch64 Linux.</td></tr>
+            <tr><td>macOS Apple Silicon</td>
+                <td><code>lhasa-aarch64-macos.tar.gz</code></td>
+                <td>Static; uses system libc++/libSystem.</td></tr>
+            <tr><td>macOS Intel</td>
+                <td><code>lhasa-x86_64-macos.tar.gz</code></td>
+                <td>Static; cross-compiled from Apple Silicon.</td></tr>
+            <tr><td>Windows x86_64</td>
+                <td><code>lhasa-x86_64-windows.zip</code></td>
+                <td>Static; MinGW. No VC redistributables.</td></tr>
+        </tbody>
+    </table>
+<pre><code>tar xzf lhasa-x86_64-linux-musl.tar.gz
+sudo install -m 0755 lhasa-x86_64-linux-musl/bin/lha /usr/local/bin/lha
+sudo install -m 0644 lhasa-x86_64-linux-musl/man/man1/lha.1 /usr/local/share/man/man1/
+man lha</code></pre>
+</section>
+
+<section id="package-managers">
+    <h2>2. Distro package manager</h2>
+    <p>If you already use <code>x install lhasa</code>, x-cmd resolves to
+        your distro's official <code>lhasa</code> package &mdash;
+        identical source to ljh-sh/lhasa. Distro-table:</p>
+<pre><code>x install lhasa    # apt / brew / pacman / zypper / xbps-install / pkg / pkgin</code></pre>
+    <p>Distribution package installs:</p>
+    <table>
+        <thead><tr><th>OS family</th><th>install command</th></tr></thead>
+        <tbody>
+            <tr><td>Debian / Ubuntu / Kali / Raspbian</td>
+                <td><code>sudo apt install lhasa</code></td></tr>
+            <tr><td>macOS</td>
+                <td><code>brew install lhasa</code></td></tr>
+            <tr><td>Arch Linux</td>
+                <td><code>yay -S lhasa-git</code></td></tr>
+            <tr><td>FreeBSD</td>
+                <td><code>pkg install archivers/lhasa</code></td></tr>
+            <tr><td>NetBSD</td>
+                <td><code>pkgin install lhasa</code></td></tr>
+            <tr><td>openSUSE</td>
+                <td><code>sudo zypper install lhasa</code></td></tr>
+            <tr><td>Void</td>
+                <td><code>sudo xbps-install lhasa</code></td></tr>
+        </tbody>
+    </table>
+    <p class="note">
+        Distro <code>lhasa</code> packages install the binary as
+        <code>/usr/bin/lha</code> (upstream convention). If both
+        <code>lhasa</code> and any <code>lha</code>-named binary are on
+        your <code>PATH</code>, the first wins; run
+        <code>which lha</code> to confirm.
+    </p>
+</section>
+
+<section id="source">
+    <h2>3. Build from source</h2>
+    <p>Vendored source is in <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>,
+        fetched via <code>git subtree</code> from
+        <a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>.
+        Build commands:</p>
+<pre><code>git clone https://github.com/ljh-sh/lhasa.git
+cd lhasa
+bash scripts/build.sh
+bash scripts/smoke.sh</code></pre>
+    <p>To refresh vendoring when upstream advances:</p>
+<pre><code>git subtree pull --prefix=upstream/lhasa https://github.com/fragglet/lhasa.git master --squash</code></pre>
+    <p>The wrapper scripts mirror what CI does: out-of-tree build via
+        <code>autoreconf -is</code>, then <code>configure &amp;&amp; make</code>.
+        See <a href="build-audit.html">build audit</a> for the per-platform
+        CI shape.</p>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

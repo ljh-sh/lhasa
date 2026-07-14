@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ビルド監査 —— lhasa</title>
+<meta name="description" content="ljh-sh/lhasa のビルド方法：5 ターゲット（musl + macOS + Windows）の CI、SHA256SUMS 検証、外部ライブラリゼロ依存、OpenSSF Scorecard。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="../install.html">インストール</a> · <a href="../usage.html">使い方</a> · <a href="../formats.html">フォーマット</a> · <a href="../security.html">セキュリティ</a> · <strong>ビルド監査</strong> · <a href="../index.html">↑ ホーム</a></nav>
+    <div class="lang-switch"><a href="../build-audit.html">en</a> · <a href="../zh-CN/build-audit.html">zh-CN</a> · <a href="../zh-TW/build-audit.html">zh-TW</a> · <strong>ja</strong></div>
+</header>
+
+
+<section class="hero">
+    <h1>ビルド監査</h1>
+    <p class="tagline">CI マトリクス、SHA256SUMS、再現性、OpenSSF。</p>
+</section>
+
+<section id="matrix">
+    <h2>ビルドマトリクス</h2>
+    <p>5 ターゲットの GitHub Actions マトリクス、各ターゲット
+        ネイティブ runner：</p>
+    <table>
+        <thead><tr><th>ターゲット</th><th>runner</th><th>リンク</th><th>アーカイブ</th></tr></thead>
+        <tbody>
+            <tr><td><code>x86_64-linux-musl</code></td><td><code>ubuntu-latest</code> + Alpine 3.20 docker</td><td>完全静的 musl</td><td><code>.tar.gz</code></td></tr>
+            <tr><td><code>aarch64-linux-musl</code></td><td><code>ubuntu-24.04-arm</code> + Alpine 3.20 docker</td><td>完全静的 musl</td><td><code>.tar.gz</code></td></tr>
+            <tr><td><code>aarch64-macos</code></td><td><code>macos-14</code></td><td>静的、システムの libc++/libSystem</td><td><code>.tar.gz</code></td></tr>
+            <tr><td><code>x86_64-macos</code></td><td><code>macos-14</code>（aarch64 からクロス）</td><td>静的、システムの libc++/libSystem</td><td><code>.tar.gz</code></td></tr>
+            <tr><td><code>x86_64-windows</code></td><td><code>windows-latest</code> + MSYS2 + mingw64</td><td>完全静的</td><td><code>.zip</code></td></tr>
+        </tbody>
+    </table>
+</section>
+
+<section id="ci">
+    <h2>CI の 2 ステージ</h2>
+    <ol>
+        <li>
+            <b><code>build-and-test.yml</code></b> &mdash; main への
+            プッシュと各 PR で走る。全マトリクス構築 + smoke + <code>dist/</code>
+            を 7 日間保持するアーティファクトにアップロード。PR ゲートの
+            役割。
+        </li>
+        <li>
+            <b><code>release.yml</code></b> &mdash; タグプッシュ
+            （<code>v*</code>）と <code>workflow_dispatch</code> で
+            トリガー。最終的にソフトプロップスで GitHub Release を発行。
+        </li>
+    </ol>
+</section>
+
+<section id="smoke">
+    <h2>スモークテスト方針</h2>
+    <p>
+        <a href="https://github.com/ljh-sh/lhasa/blob/main/scripts/smoke.sh">scripts/smoke.sh</a>：
+    </p>
+    <ol>
+        <li><b>バージョン確認</b> &mdash; 構築したばかりの <code>lha</code> の
+            バージョンバナーが一致するか。</li>
+        <li><b>CLI デコード round-trip</b> &mdash;
+            <code>upstream/lhasa/test/archives/</code> の最初の
+            <code>.lzh</code> / <code>.lzs</code> / <code>.pma</code>
+            に対して <code>lha l</code> と <code>lha xq</code> を実行。
+            バイナリが liblhasa を end-to-end で正しく駆動することを確認。
+        </li>
+    </ol>
+    <p>
+        upstream の <code>make check</code> は、直接は走らせない —
+        テストドライバが <code>. test_extract.sh</code> を相対パス
+        ソースしていて、musl/glibc 隔離の parallel build out-of-tree
+        パターンで落ちる。同じアーカイブ corpus を CLI から叩くのは
+        等価。
+    </p>
+</section>
+
+<section id="deps">
+    <h2>依存フットプリント</h2>
+    <p>vendored lhasa ツリーは<b>外部ライブラリ依存ゼロ</b> &mdash;
+        zlib も libiconv も libcurl も libarchive もない。
+        <code>configure.ac</code> は C コンパイラと Libtool しか probe しない。</p>
+    <ul>
+        <li><b>Linux musl</b> &mdash; 完全静的。同じバイナリが Alpine / Debian /
+            Ubuntu / RHEL / Fedora / Arch で動く。</li>
+        <li><b>macOS</b> &mdash; システムの <code>libc++</code> /
+            <code>libSystem</code> のみ。CI は <code>otool -L</code> で
+            Homebrew 経路リンクを検出したら失敗。</li>
+        <li><b>Windows</b> &mdash; MinGW 静的。VC 再配布不要。</li>
+    </ul>
+</section>
+
+<section id="ossf">
+    <h2>OpenSSF Scorecard</h2>
+    <p>公開 GitHub 履歴が PR で十分な厚みを持ってからバッジを有効化。
+        既に満たしているヒューリスティック：</p>
+    <ul>
+        <li><b>Code-Review</b> &mdash; PR は <code>build-and-test</code>
+            マトリクスを通過。</li>
+        <li><b>License</b> &mdash; MIT ラッパー、ISC アップストリーム。
+            どちらも <code>/LICENSE</code> と <code>/NOTICE.md</code> に。</li>
+        <li><b>Token-Permissions</b> &mdash; CI ワークフローは
+            <code>permissions: contents: write</code> をトップで宣言。</li>
+        <li><b>Pinned-Dependencies</b> &mdash; GitHub Actions は
+            major + sha にピン留め。</li>
+    </ul>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

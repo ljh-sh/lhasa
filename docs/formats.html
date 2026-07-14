@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Formats — lhasa</title>
+<meta name="description" content="lhasa reads .lzh (LHA), .lzs (LArc), and .pma (PMarc) archives — every variant the upstream Simon Howard decoder covers.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="install.html">install</a> · <a href="usage.html">usage</a> · <strong>formats</strong> · <a href="security.html">security</a> · <a href="build-audit.html">build audit</a> · <a href="index.html">↑ home</a></nav>
+    <div class="lang-switch"><strong>en</strong> · <a href="zh-CN/formats.html">zh-CN</a> · <a href="zh-TW/formats.html">zh-TW</a> · <a href="ja/formats.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>Formats</h1>
+    <p class="tagline">What lhasa reads &mdash; three format families, ten formats.</p>
+</section>
+
+<section id="lzh">
+    <h2><code>.lzh</code> &mdash; LHA / LZH / LHarc (1988-)</h2>
+    <p>
+        The <b>LHA</b> format (originally <b>LHarc</b>) was created in
+        1988 by Haruyasu Yoshizaki
+        (<a href="https://github.com/jca02266/lha">Y. Tagawa</a>). It
+        uses the
+        <a href="https://en.wikipedia.org/wiki/LZARI">LZARI</a> /
+        <a href="https://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Huffman">LZHUF</a>
+        algorithms (LZ77 + dynamic / static Huffman). The compression
+        method is encoded in the filename suffix: <code>-lh5-</code>
+        etc. Lhasa reads every LZH method:
+    </p>
+    <table>
+        <thead><tr><th>Suffix</th><th>Algorithm</th><th>Notes</th></tr></thead>
+        <tbody>
+            <tr><td><code>-lh0-</code></td>
+                <td>stored</td>
+                <td>No compression. Header still records method.</td></tr>
+            <tr><td><code>-lh1-</code></td>
+                <td>LZ77 + arithmetic (LZARI)</td>
+                <td>Original LHarc method. Rare in the wild.</td></tr>
+            <tr><td><code>-lh4-</code></td>
+                <td>LZ77 + static Huffman</td>
+                <td>LZARI variant.</td></tr>
+            <tr><td><code>-lh5-</code></td>
+                <td>LZHUF (LZ77 + dynamic Huffman)</td>
+                <td><b>The default.</b> What you'll most often encounter as
+                    <code>.lzh</code> today.</td></tr>
+            <tr><td><code>-lh6-</code></td>
+                <td>Static-Huffman LZH variant</td>
+                <td>Higher compression, narrower tool support.</td></tr>
+            <tr><td><code>-lh7-</code></td>
+                <td>LZHUF + tree variant</td>
+                <td>Experimental / rare.</td></tr>
+            <tr><td><code>-lhx-</code></td>
+                <td>LZH compatibility marker</td>
+                <td>Uses updated conventions + separate <code>-lhd-</code>
+                    directory header.</td></tr>
+        </tbody>
+    </table>
+    <p>
+        Beyond the compression method, lhasa handles the LZH header
+        variants: <b>level-0 / level-1 / level-2</b> headers (filename
+        length, CRC, extended timestamps), the <code>-lhd-</code>
+        directory-extension header, and MacBinary-encoded members.
+    </p>
+    <p class="note">
+        Lhasa is decoder-only on the LZH family &mdash; it does
+        <em>not</em> write new <code>.lzh</code> archives. For the
+        write side, use the original
+        <a href="https://github.com/jca02266/lha">jca02266/lha</a>
+        binary built from upstream source.
+    </p>
+</section>
+
+<section id="lzs">
+    <h2><code>.lzs</code> &mdash; LArc (1988-)</h2>
+    <p>
+        <b>LArc</b> is a separate archive tool by Haruhiko Okumura /
+        Yoshizaki, contemporaneous with LHarc. Format-headers encode
+        method as <code>-lz5-</code> / <code>-lzs-</code>. The
+        data-compression kernel is also LZARI-based, but the format
+        itself is structurally distinct from LHA (different magic, no
+        filename-suffix method encoding).
+    </p>
+    <p>
+        Lhasa reads both the original LArc format and the modern
+        <code>-lz5-</code> LZ5 method. The
+        <a href="https://github.com/fragglet/lhasa/blob/master/lib/lzs_decoder.c">lib/lzs_decoder.c</a>
+        and <a href="https://github.com/fragglet/lhasa/blob/master/lib/lz5_decoder.c">lib/lz5_decoder.c</a>
+        in upstream are ~600 LoC each &mdash; small, well-tested.
+    </p>
+</section>
+
+<section id="pma">
+    <h2><code>.pma</code> &mdash; PMarc (1989-)</h2>
+    <p>
+        <b>PMarc</b> is the LHA-family tool that was popular on Japanese
+        NEC PC-98 machines in the late 1980s. Two methods
+        (<code>-pm1-</code> / <code>-pm2-</code>) over a slightly
+        different header layout. Same LZARI kernel underneath. Lhasa's
+        <a href="https://github.com/fragglet/lhasa/blob/master/lib/pm1_decoder.c">lib/pm1_decoder.c</a>
+        and <a href="https://github.com/fragglet/lhasa/blob/master/lib/pm2_decoder.c">lib/pm2_decoder.c</a>
+        cover both. PC-98 software distribution archives
+        (<code>.pma</code> files) are the canonical real-world use case.
+    </p>
+    <p class="note">
+        The 0.6.0 release (2026-06-17) explicitly fixed a read
+        overflow in the <code>-pm2-</code> decoder
+        (<a href="https://github.com/fragglet/lhasa/blob/master/NEWS.md">NEWS</a>) —
+        "not believed to be an exploitable bug" per upstream, but a
+        step worth calling out for security audits.
+        See <a href="security.html">security audit</a>.
+    </p>
+</section>
+
+<section id="macbinary">
+    <h2>MacBinary-encoded members</h2>
+    <p>
+        Inside an <code>.lzh</code> archive, individual members may
+        carry MacBinary wrappers (MacLHA's signature feature &mdash;
+        they encode the resource fork + data fork of an old Mac file
+        as a single LZH member). Lhasa's
+        <a href="https://github.com/fragglet/lhasa/blob/master/lib/macbinary.c">lib/macbinary.c</a>
+        recognises and unwraps MacBinary members on extract.
+    </p>
+</section>
+
+<section id="not">
+    <h2>What lhasa does <em>not</em> read</h2>
+    <ul>
+        <li><b>Zip / gzip / bzip2 / xz / zstd / 7z / rar</b> &mdash;
+            use the appropriate tool. There's no overlap with lhasa's
+            format set.</li>
+        <li><b>Encoder for any of the above formats</b> &mdash;
+            lhasa is strictly decoder-only by design.</li>
+    </ul>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

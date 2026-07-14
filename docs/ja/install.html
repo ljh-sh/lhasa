@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>インストール —— lhasa</title>
+<meta name="description" content="LZH デコーダを 1 行で：x eget ljh-sh/lhasa、または apt install lhasa / brew install lhasa、またはソースからビルド。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><strong>インストール</strong> · <a href="../usage.html">使い方</a> · <a href="../formats.html">フォーマット</a> · <a href="../security.html">セキュリティ</a> · <a href="../build-audit.html">ビルド監査</a> · <a href="../index.html">↑ ホーム</a></nav>
+    <div class="lang-switch"><a href="../install.html">en</a> · <a href="../zh-CN/install.html">zh-CN</a> · <a href="../zh-TW/install.html">zh-TW</a> · <strong>ja</strong></div>
+</header>
+
+
+<section class="hero">
+    <h1>インストール</h1>
+    <p class="tagline">3 つのインストール方法——最初は静的バイナリ、次にディストロのパッケージマネージャ、最後にソースからビルド。</p>
+</section>
+
+<section id="static">
+    <h2>1. 静的バイナリ（1 行）</h2>
+    <p>最も速く最も移植性のある方法。<code>x eget</code> を使う——
+        x-cmd の GitHub release パイプラインのラッパー：</p>
+<pre><code>x eget ljh-sh/lhasa    # ~200 KB、ゼロ依存、マルチアーキ静的ビルド</code></pre>
+    <p>インストールされる CLI の名前は <code>lha</code>（<code>lhasa</code> ではない——
+        プロジェクトはわざと元の LHa for UNIX コマンドをミラーしています）。インストール後：</p>
+<pre><code>$ lha --help | head -1
+Lhasa v0.6.0 command line LHA tool  - Copyright (C) 2011-2025 Simon Howard</code></pre>
+</section>
+
+<section id="package-managers">
+    <h2>2. ディストロのパッケージマネージャ</h2>
+    <p><code>x install lhasa</code> を使うと、x-cmd がディストロ公式の
+        <code>lhasa</code> パッケージに解決します——ljh-sh/lhasa と同じソース：</p>
+<pre><code>x install lhasa    # apt / brew / pacman / zypper / xbps-install / pkg / pkgin</code></pre>
+</section>
+
+<section id="source">
+    <h2>3. ソースからビルド</h2>
+    <p>ソースは <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a> にあり、
+        <code>git subtree</code> で
+        <a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>
+        から取得：</p>
+<pre><code>git clone https://github.com/ljh-sh/lhasa.git
+cd lhasa
+bash scripts/build.sh
+bash scripts/smoke.sh</code></pre>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

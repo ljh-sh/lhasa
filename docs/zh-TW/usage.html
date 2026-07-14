@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>用法 —— lhasa</title>
+<meta name="description" content="lha CLI 四個常用指令：列表、解壓、測試、輸出至標準輸出。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="../install.html">安裝</a> · <strong>用法</strong> · <a href="../formats.html">格式</a> · <a href="../security.html">資安</a> · <a href="../build-audit.html">建置稽核</a> · <a href="../index.html">↑ 首頁</a></nav>
+    <div class="lang-switch"><a href="../usage.html">en</a> · <a href="../zh-CN/usage.html">zh-CN</a> · <strong>zh-TW</strong> · <a href="../ja/usage.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>用法</h1>
+    <p class="tagline">四個指令 &mdash; 其他都是選項。</p>
+</section>
+
+<aside class="tldr" id="usage">
+    <p><b>使用方法。</b>四组指令 &mdash; 列表、解壓、测试、打印：</p>
+<pre><code>  lha l archive.lzh             # 列表（ls）
+  lha x archive.lzh             # 解壓
+  lha t archive.lzh             # 测试（CRC 校驗）
+  lha p archive.lzh file        # 打印到标准輸出（cat）</code></pre>
+    <p class="cpu-note">安装：<code>x eget ljh-sh/lhasa</code>
+        &middot; 静态二进制，~200 KB，零依赖。</p>
+</aside>
+
+<section id="list">
+    <h2>看歸檔内容：<code>lha l archive.lzh</code></h2>
+    <p>最常用的操作。列出歸檔内每个成员的大小、壓縮率、时间戳：</p>
+<pre><code>$ lha l README.lzh
+PERM  UID  GID    SIZE  RATIO     STAMP           NAME
+[generic]                  1234  60.0%  Jul 14 20:30  README.md
+[generic]                  5678  72.5%  Jul 14 20:30  src/main.c
+---------- -------------------- ------- ----------
+                      2 files,    6912 bytes (62.5%)</code></pre>
+    <p>加 <code>v</code> 出詳情（路径权限 + CRC）：</p>
+<pre><code>$ lha lv README.lzh</code></pre>
+    <p>两个 <code>v</code> 是超詳細（每块信息）：</p>
+<pre><code>$ lha lvv README.lzh</code></pre>
+</section>
+
+<section id="extract">
+    <h2>解壓：<code>lha x archive.lzh</code></h2>
+    <p>預設解壓模式。檔案按歸檔里的相对路径写到当前目录：</p>
+<pre><code>$ lha x archive.lzh</code></pre>
+    <p>常用選項：</p>
+    <ul>
+        <li><code>q</code>（安靜）：<code>lha xq archive.lzh</code></li>
+        <li><code>w=DIR</code>（写到 DIR，自动 mkdir）：
+            <code>lha xw=output archive.lzh</code></li>
+        <li><code>f</code>（强制覆盖，不问）：
+            <code>lha xf archive.lzh</code></li>
+        <li><code>i</code>（忽略目录条目，把所有檔案平铺到当前目录）：
+            <code>lha xi archive.lzh</code></li>
+    </ul>
+    <p>glob 過濾：</p>
+<pre><code>$ lha x archive.lzh "*.c"        # 只解 *.c
+$ lha x archive.lzh src/*        # 只解 src/ 下</code></pre>
+</section>
+
+<section id="test">
+    <h2>CRC 校驗：<code>lha t archive.lzh</code></h2>
+    <p>遍歷整个歸檔，重算每个成员的 CRC16，和歸檔头里写的对一遍。退出码 0
+        = 全过；非 0 = 有成员 CRC 不对（歸檔坏了或者没下完）。</p>
+<pre><code>$ lha t README.lzh
+test README.lzh            : OK</code></pre>
+    <p>在 CI 里这个很管用——从上游 mirror 拉完 <code>.lzh</code> 之后
+        <code>lha t</code> 一下再解。</p>
+</section>
+
+<section id="print">
+    <h2>打印到标准輸出：<code>lha p archive.lzh file</code></h2>
+    <p>把歸檔里单个成员輸出到 stdout（已解壓）。等价
+        <code>tar -xOf archive.lzh file</code>：</p>
+<pre><code>$ lha p README.lzh src/main.c | head -5
+/* main.c — entry point */</code></pre>
+    <p>不加成员過濾则按顺序打印全部成员，方便管道：</p>
+<pre><code>$ lha p archive.lzh | grep TODO</code></pre>
+</section>
+
+<section id="missing">
+    <h2>lhasa 不做什么</h2>
+    <ul>
+        <li>不写新 <code>.lzh</code> 歸檔。要写就只能用原版
+            <a href="https://github.com/jca02266/lha">jca02266/lha</a>
+            （LHa for UNIX 1.14i）自己 build 的 <code>lha</code>。</li>
+        <li>不写新 <code>.lzs</code> 或 <code>.pma</code>。同上——lhasa
+            故意只做 decode，encoder 是另一个历史问题。</li>
+    </ul>
+    <p>读（2026 年的 99% 用例）用 lhasa 就够了。</p>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

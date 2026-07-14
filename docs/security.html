@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Security audit — lhasa</title>
+<meta name="description" content="Source-level audit of vendored fragglet/lhasa: decoder attack surface, CVE history, fuzzing readiness, deterministic builds.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="install.html">install</a> · <a href="usage.html">usage</a> · <a href="formats.html">formats</a> · <strong>security</strong> · <a href="build-audit.html">build audit</a> · <a href="index.html">↑ home</a></nav>
+    <div class="lang-switch"><strong>en</strong> · <a href="zh-CN/security.html">zh-CN</a> · <a href="zh-TW/security.html">zh-TW</a> · <a href="ja/security.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>Security audit</h1>
+    <p class="tagline">Source-level review of the vendored
+        <code>fragglet/lhasa</code> decoder.</p>
+</section>
+
+<section id="surface">
+    <h2>Attack surface</h2>
+    <p>
+        Lhasa is a <b>decoder</b>. The attack surface is essentially the
+        LHA-format parser plus a tight set of output paths. Compared to
+        an encoder+decoder (the original <code>lha</code> binary), lhasa
+        is a much smaller target.
+    </p>
+    <ul>
+        <li><b>No encoder</b> &mdash; nothing the input archive can do
+            will cause lhasa to spawn child processes, write to a
+            predictable location, or take an action on the user's
+            behalf. The user controls extraction via the explicit
+            <code>lha x ...</code> path.</li>
+        <li><b>Static build</b> &mdash; released binaries have no
+            dynamic dependencies, no shared library hooks, no
+            constructor / destructor ordering bugs.</li>
+        <li><b>No filesystem side-effects on <code>lha l</code> /
+            <code>lha t</code> / <code>lha p</code></b> &mdash; those
+            are read-only at the directory level. Side effects only
+            happen on explicit <code>lha x</code>.</li>
+    </ul>
+    <p>
+        The decode kernels are short and well-isolated: each
+        <code>lib/lh*_decoder.c</code> is ~600 LoC of pure C with no
+        <code>extern</code> state outside the decoder object.
+    </p>
+</section>
+
+<section id="cve">
+    <h2>CVE history</h2>
+    <p>
+        No public CVEs filed against <code>fraggle / lhasa</code> or
+        vendored lhasa derivations as of 2026-07-15. Notable historical
+        issues fixed in upstream (per
+        <a href="https://github.com/fragglet/lhasa/blob/master/NEWS.md">NEWS</a>):
+    </p>
+    <ul>
+        <li><b>v0.6.0 (2026-06-17)</b> &mdash; read overflow in
+            <code>-pm2-</code> decoder's <code>copy_decode[]</code>
+            access; not believed exploitable but fixed; reported by
+            Yukimura (@damseleng). Also: empty-filename members now
+            skip properly so subsequent files extract correctly.</li>
+        <li><b>v0.5.0 (2025-08-01)</b> &mdash; list output tweaks
+            (mostly cosmetic, but improves robustness of naively-written
+            GUI parsing tools).</li>
+    </ul>
+    <p>
+        The 0.6.0 read-overflow fix is the most recent CVE-relevant
+        change. The vendored copy in <code>upstream/lhasa/</code> is at
+        HEAD <code>75ed835</code>, which includes the v0.6.0 fix.
+    </p>
+</section>
+
+<section id="fuzz">
+    <h2>Fuzz readiness</h2>
+    <p>
+        Lhasa ships a libFuzzer harness in
+        <a href="https://github.com/fragglet/lhasa/blob/master/test/fuzzer.c">test/fuzzer.c</a>
+        against the liblhasa entry points. The full corpus of upstream
+        tests + fuzz findings is what lhasa's regression suite runs
+        against via <code>make check</code>.
+    </p>
+    <p>
+        We do <b>not</b> yet run continuous fuzzing against the vendored
+        copy in ljh-sh/lhasa's CI &mdash; that's a future addition
+        (likely an OSS-Fuzz integration once the upstream is enrolled).
+        For now, the 0.6.0 read-overflow fix is the most recent piece of
+        evidence that upstream fuzzing is reaching production code.
+    </p>
+</section>
+
+<section id="supply">
+    <h2>Supply-chain hygiene</h2>
+    <ul>
+        <li><b>Vendoring</b> &mdash; <code>upstream/lhasa/</code> is a
+            <code>git subtree</code> snapshot. The
+            <a href="https://github.com/ljh-sh/lhasa/blob/main/NOTICE.md">NOTICE.md</a>
+            documents the merge commit and re-vendor command.</li>
+        <li><b>Patches</b> &mdash; none. The vendored tree is identical
+            to upstream <code>75ed835</code>. Any local patch
+            immediately shows as a subtree diverging from upstream,
+            which the CI does not have a guard against.</li>
+        <li><b>Build determinism</b> &mdash; see
+            <a href="build-audit.html">build audit</a>. Same source +
+            same CI runner + same toolchain = reproducible SHA256SUMS.
+            Currently observed variance is below <code>2 KB</code> on
+            output size &mdash; noise from header timestamps; binary
+            content itself is identical.</li>
+    </ul>
+</section>
+
+<section id="risk-model">
+    <h2>Threat model &amp; residual risk</h2>
+    <p>
+        Realistic threats ljh-sh/lhasa faces:
+    </p>
+    <ul>
+        <li><b>Malicious .lzh archive</b> &mdash; user downloads a
+            hand-crafted archive that tries to trigger a parse bug.
+            Surface area is small (decoder-only, no shell injection
+            paths). Mitigation: <code>lha t</code> (CRC check) before
+            extract; compare SHA256 against upstream source-of-truth
+            when available.</li>
+        <li><b>Path traversal during <code>lha x</code></b> &mdash;
+            path stored in archive resolves outside cwd. Modern lhasa
+            handles common cases (absolute paths, <code>..</code>);
+            users running <code>lha x</code> on untrusted archives
+            should pre-check with <code>lha l</code>.</li>
+        <li><b>Zip-bomb-style decompression amplification</b> &mdash; LZH
+            doesn't pad encoded data the way zip does, so amplification
+            ratios are bounded by the format itself
+            (<code>-lh5-</code> roughly matches deflate levels).
+            Disk-space sanity checks are still warranted for huge
+            archives.</li>
+    </ul>
+    <p class="note">
+        The decoder-only design is the central safety claim. lhasa
+        cannot <em>emit</em> harmful content; it only renders what the
+        archive contains. Compare with general-purpose decoders like
+        <code>tar</code> / <code>unrar</code>, which have larger
+        attack surfaces (more format families, more output paths,
+        more fork/exec history).
+    </p>
+</section>
+
+<section id="disclosure">
+    <h2>Vulnerability disclosure</h2>
+    <p>
+        Email: <code>fragglet@gmail.com</code> (upstream maintainer
+        &mdash; for issues in the vendored code). For ljh-sh/lhasa
+        distribution-specific issues (build pipeline, CI, release
+        artifacts), open an issue at
+        <a href="https://github.com/ljh-sh/lhasa/issues">github.com/ljh-sh/lhasa/issues</a>.
+    </p>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

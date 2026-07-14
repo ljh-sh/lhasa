@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Usage — lhasa</title>
+<meta name="description" content="lha CLI usage: list, extract, test, print-compressed. The four commands every LZH user needs.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="install.html">install</a> · <strong>usage</strong> · <a href="formats.html">formats</a> · <a href="security.html">security</a> · <a href="build-audit.html">build audit</a> · <a href="index.html">↑ home</a></nav>
+    <div class="lang-switch"><strong>en</strong> · <a href="zh-CN/usage.html">zh-CN</a> · <a href="zh-TW/usage.html">zh-TW</a> · <a href="ja/usage.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>Usage</h1>
+    <p class="tagline">Four commands &mdash; everything else is a flag on top.</p>
+</section>
+
+<aside class="tldr" id="usage">
+    <p><b>Usage.</b> Four commands &mdash; list, extract, test, print:</p>
+<pre><code>  lha l archive.lzh             # list (ls)
+  lha x archive.lzh             # extract
+  lha t archive.lzh             # test (CRC verify)
+  lha p archive.lzh file        # print (cat) to stdout</code></pre>
+    <p class="cpu-note">install: <code>x eget ljh-sh/lhasa</code>
+        &middot; static binary, ~200 KB, zero deps.</p>
+</aside>
+
+<section id="list">
+    <h2>List archive contents: <code>lha l archive.lzh</code></h2>
+    <p>
+        The most common operation. The output lists every member of the
+        archive with size, ratio, and timestamp:
+    </p>
+<pre><code>$ lha l README.lzh
+PERM  UID  GID    SIZE  RATIO     STAMP           NAME
+[generic]                  1234  60.0%  Jul 14 20:30  README.md
+[generic]                  5678  72.5%  Jul 14 20:30  src/main.c
+---------- -------------------- ------- ----------
+                      2 files,    6912 bytes (62.5%)</code></pre>
+    <p>Add <code>v</code> for verbose (path permissions + CRC):</p>
+<pre><code>$ lha lv README.lzh</code></pre>
+    <p>Use <code>v</code> twice for ultra-verbose (per-block info):</p>
+<pre><code>$ lha lvv README.lzh</code></pre>
+</section>
+
+<section id="extract">
+    <h2>Extract: <code>lha x archive.lzh</code></h2>
+    <p>The default extract mode. Files are written relative to the
+        current directory, with the path as stored in the archive:</p>
+<pre><code>$ lha x archive.lzh</code></pre>
+    <p>
+        Common options:
+    </p>
+    <ul>
+        <li><code>q</code> (quiet) &mdash; skip per-file output:
+            <code>lha xq archive.lzh</code></li>
+        <li><code>w=DIR</code> &mdash; extract into <code>DIR</code>
+            (creates if missing):
+            <code>lha xw=output archive.lzh</code></li>
+        <li><code>f</code> &mdash; force overwrite without prompting:
+            <code>lha xf archive.lzh</code></li>
+        <li><code>i</code> &mdash; ignore directory entries (extract
+            files but skip recreating the directory hierarchy):
+            <code>lha xi archive.lzh</code></li>
+    </ul>
+    <p>
+        Filter to specific members using glob patterns:
+    </p>
+<pre><code>$ lha x archive.lzh "*.c"        # only *.c members
+$ lha x archive.lzh src/*        # only files under src/</code></pre>
+</section>
+
+<section id="test">
+    <h2>Verify CRC: <code>lha t archive.lzh</code></h2>
+    <p>
+        Walks the archive, recomputes each member's CRC16, compares
+        against the stored value. Exit code 0 = all members OK; non-zero
+        = a member failed CRC (archive is corrupt or partially
+        written):
+    </p>
+<pre><code>$ lha t README.lzh
+test README.lzh            : OK</code></pre>
+    <p>
+        Use this in CI artifact verification &mdash; e.g. after downloading
+        an <code>.lzh</code> from an upstream mirror, sanity-check it with
+        <code>lha t</code> before extracting.
+    </p>
+</section>
+
+<section id="print">
+    <h2>Print to stdout: <code>lha p archive.lzh file</code></h2>
+    <p>
+        Print a single archive member to <code>stdout</code>, decompressed.
+        Equivalent to <code>tar -xOf archive.lzh file</code>:
+    </p>
+<pre><code>$ lha p README.lzh src/main.c | head -5
+/* main.c — entry point */</code></pre>
+    <p>
+        With no member filter, <code>lha p</code> prints every member
+        in sequence. Useful for piping into <code>grep</code> /
+        <code>less</code> / another archiving tool:
+    </p>
+<pre><code>$ lha p archive.lzh | grep TODO</code></pre>
+</section>
+
+<section id="missing">
+    <h2>What lhasa does <em>not</em> do</h2>
+    <p>
+        Lhasa is decoder-only. It cannot:
+    </p>
+    <ul>
+        <li>Create a new <code>.lzh</code> archive. Use the original
+            <code>lha</code> binary built from upstream
+            <a href="https://github.com/jca02266/lha">jca02266/lha</a>
+            (LHa for UNIX 1.14i) for that.</li>
+        <li>Write a new <code>.lzs</code> or <code>.pma</code> archive.
+            Same story &mdash; lhasa's encoder path was never developed
+            on purpose.</li>
+    </ul>
+    <p>
+        For reads (the 99% use case in 2026), lhasa is the canonical
+        free tool.
+    </p>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

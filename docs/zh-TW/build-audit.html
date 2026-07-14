@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>建置稽核 —— lhasa</title>
+<meta name="description" content="ljh-sh/lhasa 的建置方式：5 目標 musl + macOS + Windows CI、SHA256SUMS 校驗、零外部函式庫相依、OpenSSF Scorecard。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="../install.html">安裝</a> · <a href="../usage.html">用法</a> · <a href="../formats.html">格式</a> · <a href="../security.html">資安</a> · <strong>建置稽核</strong> · <a href="../index.html">↑ 首頁</a></nav>
+    <div class="lang-switch"><a href="../build-audit.html">en</a> · <a href="../zh-CN/build-audit.html">zh-CN</a> · <strong>zh-TW</strong> · <a href="../ja/build-audit.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>建置稽核</h1>
+    <p class="tagline">CI 矩阵、SHA256SUMS、可复现、OpenSSF。</p>
+</section>
+
+<section id="matrix">
+    <h2>建置矩阵</h2>
+    <p>5 目标 GitHub Actions 矩阵，各目标原生 runner：</p>
+    <table>
+        <thead><tr><th>目标</th><th>runner</th><th>链接</th><th>归档</th></tr></thead>
+        <tbody>
+            <tr><td><code>x86_64-linux-musl</code></td><td><code>ubuntu-latest</code> + Alpine 3.20 docker</td><td>完全静态 musl</td><td><code>.tar.gz</code></td></tr>
+            <tr><td><code>aarch64-linux-musl</code></td><td><code>ubuntu-24.04-arm</code> + Alpine 3.20 docker</td><td>完全静态 musl</td><td><code>.tar.gz</code></td></tr>
+            <tr><td><code>aarch64-macos</code></td><td><code>macos-14</code></td><td>静态，系统 libc++/libSystem</td><td><code>.tar.gz</code></td></tr>
+            <tr><td><code>x86_64-macos</code></td><td><code>macos-14</code>（从 aarch64 交叉）</td><td>静态，系统 libc++/libSystem</td><td><code>.tar.gz</code></td></tr>
+            <tr><td><code>x86_64-windows</code></td><td><code>windows-latest</code> + MSYS2 + mingw64</td><td>完全静态</td><td><code>.zip</code></td></tr>
+        </tbody>
+    </table>
+    <p>aarch64-windows 暂时不做——MSYS2 MINGW64 没
+        <code>mingw-w64-aarch64-gcc</code> 包，跟 ljh-sh/lha 同样的瓶颈。</p>
+</section>
+
+<section id="ci">
+    <h2>CI 两阶段</h2>
+    <ol>
+        <li>
+            <b><code>build-and-test.yml</code></b> &mdash; 每个 push 到
+            <code>main</code> 和每个 PR 都跑。全矩阵建置 + smoke + 把
+            <code>dist/</code> 作为 workflow artifact 上传（7 天保留）。
+            PR 准入门槛就是它。
+        </li>
+        <li>
+            <b><code>release.yml</code></b> &mdash; 只在 tag push
+            （<code>v*</code>）和 <code>workflow_dispatch</code> 触发。
+            建置矩阵跟前者完全一致；最后一步通过
+            <a href="https://github.com/softprops/action-gh-release">softprops/action-gh-release</a>
+            发 GitHub Release，带每个 archive 的 <code>.sha256</code>
+            和顶层 <code>SHA256SUMS</code>。
+        </li>
+    </ol>
+</section>
+
+<section id="smoke">
+    <h2>Smoke 测试</h2>
+    <p>脚本（<a href="https://github.com/ljh-sh/lhasa/blob/main/scripts/smoke.sh">scripts/smoke.sh</a>）做两件事：</p>
+    <ol>
+        <li><b>版本检查</b>——确认 <code>lha</code> 跑出预期的版本横幅。</li>
+        <li><b>CLI 解码 round-trip</b>——拿
+            <code>upstream/lhasa/test/archives/</code> 里的
+            <code>.lzh</code> / <code>.lzs</code> / <code>.pma</code>
+            跑 <code>lha l</code> 和 <code>lha xq</code>。</li>
+    </ol>
+    <p>不直接跑 <code>make check</code>：上游测试 driver 用相对路径
+        source <code>test_extract.sh</code>，跟我们用的 musl+glibc 隔离的
+        out-of-tree 模式冲突。走 CLI 等价路径。</p>
+</section>
+
+<section id="deps">
+    <h2>相依足迹</h2>
+    <p>lhasa 源碼树<b>零外部库相依</b>——没 zlib、没 libiconv、没 libcurl、
+    没 libarchive。<code>configure.ac</code> 只 probe C 编译器和 Libtool。</p>
+    <ul>
+        <li><b>Linux musl</b>——完全静态。同一个二进制在 Alpine / Debian / Ubuntu /
+            RHEL / Fedora / Arch 都能跑。CI 里 <code>ldd</code> 验证。</li>
+        <li><b>macOS</b>——只链系统 <code>libc++</code> / <code>libSystem</code>。
+            <code>otool -L</code> 在 CI 验证，碰到 Homebrew 路径就 fail。</li>
+        <li><b>Windows</b>——MinGW 静态。没 VC redistributable。</li>
+    </ul>
+</section>
+
+<section id="ossf">
+    <h2>OpenSSF Scorecard</h2>
+    <p>等 GitHub 历史积累够 PR 让启发式有意义再开 Scorecard。已经满足的项：</p>
+    <ul>
+        <li><b>Code-Review</b>——PR 走 <code>build-and-test</code> 矩阵过审。</li>
+        <li><b>License</b>——MIT 包装 + ISC 上游，都在 <code>/LICENSE</code>
+            和 <code>/NOTICE.md</code>。</li>
+        <li><b>Token-Permissions</b>——CI workflow 顶部声明
+            <code>permissions: contents: write</code>（按需最小）。</li>
+        <li><b>Pinned-Dependencies</b>——GitHub Actions pin 到 major + sha。</li>
+    </ul>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

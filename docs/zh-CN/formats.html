@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>格式 —— lhasa</title>
+<meta name="description" content="lhasa 读 .lzh (LHA)、.lzs (LArc)、.pma (PMarc) 三种历史归档格式，覆盖所有 Simon Howard 解码器支持的变体。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="../install.html">安装</a> · <a href="../usage.html">用法</a> · <strong>格式</strong> · <a href="../security.html">安全</a> · <a href="../build-audit.html">构建审计</a> · <a href="../index.html">↑ 首页</a></nav>
+    <div class="lang-switch"><a href="../formats.html">en</a> · <strong>zh-CN</strong> · <a href="../zh-TW/formats.html">zh-TW</a> · <a href="../ja/formats.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>格式</h1>
+    <p class="tagline">lhasa 读什么 &mdash; 三家族十格式。</p>
+</section>
+
+<section id="lzh">
+    <h2><code>.lzh</code> &mdash; LHA / LZH / LHarc（1988-）</h2>
+    <p>LHA（前身 LHarc）是 1988 年 Yoshizaki 起的格式，用 LZARI / LZHUF
+        算法（LZ77 + Huffman）。压缩方式写在文件后缀里：<code>-lh5-</code>
+        之类。lhasa 读全部 LZH 方法：</p>
+    <table>
+        <thead><tr><th>后缀</th><th>算法</th><th>说明</th></tr></thead>
+        <tbody>
+            <tr><td><code>-lh0-</code></td><td>不压缩</td>
+                <td>归档头里仍记 method。</td></tr>
+            <tr><td><code>-lh1-</code></td><td>LZ77 + 算术编码 (LZARI)</td>
+                <td>原 LHarc 方法，少见。</td></tr>
+            <tr><td><code>-lh4-</code></td><td>LZ77 + 静态 Huffman</td>
+                <td>LZARI 变体。</td></tr>
+            <tr><td><code>-lh5-</code></td><td>LZHUF (LZ77 + 动态 Huffman)</td>
+                <td><b>默认。</b>现在遇到的 <code>.lzh</code> 多数是它。</td></tr>
+            <tr><td><code>-lh6-</code></td><td>静态 Huffman 变体</td>
+                <td>压缩率更高，工具支持窄一点。</td></tr>
+            <tr><td><code>-lh7-</code></td><td>LZHUF + tree 变体</td>
+                <td>实验性。</td></tr>
+            <tr><td><code>-lhx-</code></td><td>LZH 兼容性标记</td>
+                <td>用更新约定 + 分开的 <code>-lhd-</code> 目录头。</td></tr>
+        </tbody>
+    </table>
+    <p>除了压缩方法，lhasa 还处理 LZH 头变体：level-0/1/2（文件名长度、CRC、
+        扩展时间戳）、<code>-lhd-</code> 目录扩展头、MacBinary 编码成员。</p>
+</section>
+
+<section id="lzs">
+    <h2><code>.lzs</code> &mdash; LArc（1988-）</h2>
+    <p>LArc 是 Okumura / Yoshizaki 的另一个归档工具，跟 LHarc 同时代。
+        方法标记是 <code>-lz5-</code> / <code>-lzs-</code>。底层还是 LZARI，
+        但格式结构跟 LHA 完全不同（魔数不同、文件名后缀不写方法）。</p>
+    <p>lhasa 同时读老 LArc 和现代 <code>-lz5-</code>（LZ5）方法。</p>
+</section>
+
+<section id="pma">
+    <h2><code>.pma</code> &mdash; PMarc（1989-）</h2>
+    <p>PMarc 是 1980 年代末日本 NEC PC-98 平台流行的 LHA 家族工具。两种方法
+        （<code>-pm1-</code> / <code>-pm2-</code>）配稍不同的头布局，底层
+        也是 LZARI。PC-98 软件分发的 <code>.pma</code> 文件是典型用例。</p>
+</section>
+
+<section id="not">
+    <h2>lhasa 不读什么</h2>
+    <ul>
+        <li><b>zip / gzip / bzip2 / xz / zstd / 7z / rar</b>——用对应工具。
+            跟 lhasa 的格式集没有重叠。</li>
+        <li><b>以上任何格式的 encoder</b>——lhasa 严格只做 decoder。</li>
+    </ul>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

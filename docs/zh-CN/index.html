@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>lhasa —— 一份二进制，纯 FOSS 解 LHA/LZH/PMarc</title>
+<meta name="description" content="lhasa：纯 FOSS（ISC）的 LHA/LZH/PMarc 解码器 + liblhasa，跨平台单文件静态二进制。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="../install.html">安装</a> · <a href="../usage.html">用法</a> · <a href="../formats.html">格式</a> · <a href="../security.html">安全</a> · <a href="../build-audit.html">构建审计</a> · <strong>↑ 首页</strong></nav>
+    <div class="lang-switch"><a href="../index.html">en</a> · <strong>zh-CN</strong> · <a href="../zh-TW/index.html">zh-TW</a> · <a href="../ja/index.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>lhasa</h1>
+    <p class="tagline"><b>纯 FOSS 的 <code>LHA</code> / <code>LZH</code> /
+        <code>PMarc</code> 解码器</b>，单文件自包含静态二进制发布。</p>
+    <p class="byline">
+        <code>lhasa</code> 内部 vendored 自
+        <a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>
+        ——ISC 协议的库与 CLI，作者 Simon Howard。我们不维护解码器；
+        我们只把它打包成跨平台零依赖的静态二进制。
+    </p>
+    <p>
+        <a class="cta" href="install.html">macOS / Linux / Windows 安装</a>
+        <a class="cta secondary" href="usage.html">看四个常用命令</a>
+    </p>
+    <p class="cpu-note">~200 KB 静态二进制 &middot; 任何 Linux / macOS / Windows
+        都不需 <code>libc</code> / <code>zlib</code> / <code>libiconv</code>。</p>
+    <p class="meta">
+        <a href="https://github.com/ljh-sh/lhasa/releases">最新 release</a>
+        &middot; <a href="https://github.com/fragglet/lhasa">upstream</a>
+        &middot; <a href="security.html">安全审计</a>
+        &middot; <a href="formats.html">支持的格式</a>
+        &middot; <a href="usage.html">用法</a>
+        &middot; <a href="install.html">安装</a>
+        &middot; <a href="build-audit.html">构建审计</a>
+    </p>
+</section>
+
+<aside class="tldr" id="tldr">
+    <p><b>一句话</b>。<code>lhasa</code> 是 <code>lha</code> 命令行工具的纯 FOSS
+        复刻——读 <code>.lzh</code>（LHA）、<code>.lzs</code>（LArc）、
+        <code>.pma</code>（PMarc）归档，没有历史上 <code>lha</code> 的非自由
+        再分发包袱。上游是
+        <a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>
+        （ISC，Simon Howard）；本仓
+        （<a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>）
+        是多架构静态二进制分发。CLI 二进制名字故意是 <code>lha</code>（不是
+        <code>lhasa</code>），所以老脚本 <code>lha x foo.lzh</code> 直接能跑。
+        <b>谁该用</b>：在没装 1990 年代归档工具的系统上解 30 年前
+        <code>.lzh</code> 的人；CI 流水线要一个 200 KB、零外部依赖（libz /
+        libiconv / libcurl 都不要）的二进制；要用 <code>liblhasa</code> 在 C
+        程序里嵌入解码的人。<b>本站是什么</b>：
+        <a href="install.html">安装指南</a>（x eget / apt / brew / 源码编译）、
+        <a href="usage.html">用法导览</a>（四个常用命令 <code>l</code> /
+        <code>x</code> / <code>t</code> / <code>p</code>）、
+        <a href="formats.html">格式目录</a>（<code>.lzh</code> / <code>.lzs</code>
+        / <code>.pma</code> 三家族）、<a href="security.html">源码级安全审计</a>
+        （关于 vendored 解码器）、<a href="build-audit.html">构建审计</a>（CI
+        矩阵、SHA256SUMS、可复现性）。<b>本站不是什么</b>：不是 encoder、不是
+        lzh 格式扩展、不是从零写的 lhasa-rs。</b>
+    </p>
+</aside>
+
+<section id="about">
+    <h2>什么是 lhasa?</h2>
+    <p>
+        <b>Lhasa</b> 是 ISC 协议的库 + CLI，用于读 <code>.lzh</code>（LHA）和
+        <code>.lzs</code> / <code>.pma</code> 归档。故意只做解码——写
+        <code>.lzh</code> 仍然是原版 <code>lha</code> 二进制的活（从
+        <a href="https://github.com/jca02266/lha">jca02266/lha</a> 源码
+        build）。</p>
+    <p>
+        <code>lhasa</code>（库，<code>liblhasa</code>）能在 C 程序里嵌入：
+        文件管理器用它做 LZH 预览；CDN / 归档项目用它按需取
+        <code>.lzh</code> 内容。lhasa 自带的 CLI 二进制起名
+        <code>lha</code>——项目故意镜像原 LHa for UNIX 命令，让老工具链
+        调 <code>lha x archive.lzh</code> 直接透明能跑。
+    </p>
+</section>
+
+<aside class="tldr" id="usage">
+    <p><b>使用方法。</b>四组命令 &mdash; 列表、解压、测试、打印：</p>
+    <pre><code>  lha l archive.lzh             # 列表（ls）
+  lha x archive.lzh             # 解压
+  lha t archive.lzh             # 测试（CRC 校验）
+  lha p archive.lzh file        # 打印到标准输出（cat）</code></pre>
+    <p class="cpu-note">安装：<code>x eget ljh-sh/lhasa</code>
+        &middot; 静态二进制，~200 KB，零依赖。</p>
+</aside>
+
+<section id="history">
+    <h2>为什么 lhasa 存在（一段话）</h2>
+    <p>
+        <a href="https://github.com/jca02266/lha">jca02266/lha</a>
+        （<code>LHa for UNIX 1.14i</code> 的维护 fork）在它 man page 里带着一个
+        作者自定义的分发协议——允许源码再分发（带出处），但
+        <i>纯二进制再分发</i>须先联系原作者。1990 年代这事不是问题，Linux
+        发行版直接发二进制。2012 年 Debian 把这个包挪出 <code>non-free</code>
+        之后，<b>fragglet/lhasa</b>（2011 年 Simon Howard 启动，ISC）成了
+        标准 FOSS 替代。lhasa 能读原版 lha 写的每种变体（lh0..lh7、lhx、
+        lzs、pma），但不能写新 <code>.lzh</code> 归档——写还是原版
+        <code>lha</code> 源码 build 的活。
+    </p>
+    <p>
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>
+        把 ISC 源码打成单一静态二进制——上游
+        <code>fragglet/lhasa</code> 只发源码 tar 包 + Windows 预编译包，
+        Linux / macOS 用户想要一行命令直接安装（不用 build）的话，
+        就用本仓。
+    </p>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>フォーマット —— lhasa</title>
+<meta name="description" content="lhasa は .lzh (LHA)、.lzs (LArc)、.pma (PMarc) の 3 つの歴史的アーカイブ形式を読み取れる（Simon Howard のアップストリームの全変体をカバー）。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="../install.html">インストール</a> · <a href="../usage.html">使い方</a> · <strong>フォーマット</strong> · <a href="../security.html">セキュリティ</a> · <a href="../build-audit.html">ビルド監査</a> · <a href="../index.html">↑ ホーム</a></nav>
+    <div class="lang-switch"><a href="../formats.html">en</a> · <a href="../zh-CN/formats.html">zh-CN</a> · <a href="../zh-TW/formats.html">zh-TW</a> · <strong>ja</strong></div>
+</header>
+
+
+<section class="hero">
+    <h1>フォーマット</h1>
+    <p class="tagline">lhasa が読めるもの &mdash; 3 つのファミリー、10 のフォーマット。</p>
+</section>
+
+<section id="lzh">
+    <h2><code>.lzh</code> &mdash; LHA / LZH / LHarc (1988-)</h2>
+    <p><b>LHA</b>（旧名 <b>LHarc</b>）は 1988 年に Haruyasu Yoshizaki が作った。
+        使うのは <a href="https://en.wikipedia.org/wiki/LZARI">LZARI</a> /
+        <a href="https://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Huffman">LZHUF</a>。
+        圧縮方式はファイル名のサフィックスにエンコードされる：<code>-lh5-</code> 等。
+        lhasa はすべての LZH メソッドを読める：</p>
+    <table>
+        <thead><tr><th>サフィックス</th><th>アルゴリズム</th><th>備考</th></tr></thead>
+        <tbody>
+            <tr><td><code>-lh0-</code></td><td>無圧縮</td>
+                <td>ヘッダにはメソッドが残る。</td></tr>
+            <tr><td><code>-lh1-</code></td><td>LZ77 + 算術符号 (LZARI)</td>
+                <td>オリジナルの LHarc メソッド。まれ。</td></tr>
+            <tr><td><code>-lh4-</code></td><td>LZ77 + 静的 Huffman</td>
+                <td>LZARI バリアント。</td></tr>
+            <tr><td><code>-lh5-</code></td><td>LZHUF (LZ77 + 動的 Huffman)</td>
+                <td><b>デフォルト。</b>今見る <code>.lzh</code> の大半。</td></tr>
+            <tr><td><code>-lh6-</code></td><td>静的 Huffman バリアント</td>
+                <td>より高圧縮、ツールサポートは狭い。</td></tr>
+            <tr><td><code>-lh7-</code></td><td>LZHUF + tree バリアント</td>
+                <td>実験的。</td></tr>
+            <tr><td><code>-lhx-</code></td><td>LZH 互換マーカー</td>
+                <td>更新規約 + 分離された <code>-lhd-</code> ディレクトリヘッダ。</td></tr>
+        </tbody>
+    </table>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

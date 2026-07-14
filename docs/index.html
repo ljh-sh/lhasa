@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>lhasa — a free LHA/LZH/PMarc decoder in one static binary</title>
+<meta name="description" content="lhasa: free (ISC) LHA/LZH/PMarc decoder + liblhasa, distributed as a single statically-linked binary for Linux/macOS/Windows.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="install.html">install</a> · <a href="usage.html">usage</a> · <a href="formats.html">formats</a> · <a href="security.html">security</a> · <a href="build-audit.html">build audit</a> · <strong>↑ home</strong></nav>
+    <div class="lang-switch"><strong>en</strong> · <a href="zh-CN/index.html">zh-CN</a> · <a href="zh-TW/index.html">zh-TW</a> · <a href="ja/index.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>lhasa</h1>
+    <p class="tagline"><b>the free <code>LHA</code> / <code>LZH</code> /
+        <code>PMarc</code> decoder</b>, distributed as a single
+        self-contained static binary.</p>
+    <p class="byline">
+        <code>lhasa</code> is vendored from
+        <a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>
+        &mdash; an ISC-licensed library + CLI by Simon Howard. We don't
+        maintain the decoder; we just ship it as a zero-dependency
+        static binary for every major platform.
+    </p>
+    <p>
+        <a class="cta" href="install.html">Install on macOS / Linux / Windows</a>
+        <a class="cta secondary" href="usage.html">See the four commands</a>
+    </p>
+    <p class="cpu-note">~200 KB static binary &middot; zero
+        <code>libc</code> / <code>zlib</code> / <code>libiconv</code>
+        on any Linux, macOS, or Windows.</p>
+    <p class="meta">
+        <a href="https://github.com/ljh-sh/lhasa/releases">Latest release</a>
+        &middot; <a href="https://github.com/fragglet/lhasa">upstream</a>
+        &middot; <a href="security.html">Security audit</a>
+        &middot; <a href="formats.html">Supported formats</a>
+        &middot; <a href="usage.html">Usage</a>
+        &middot; <a href="install.html">Install</a>
+        &middot; <a href="build-audit.html">Build audit</a>
+    </p>
+</section>
+
+<aside class="tldr" id="tldr">
+    <p><b>TL;DR.</b> <code>lhasa</code> is the de-facto free
+        reimplementation of the <code>lha</code> CLI &mdash; reads
+        <code>.lzh</code> (LHA), <code>.lzs</code> (LArc), and
+        <code>.pma</code> (PMarc) archives without the non-free
+        redistribution baggage of historical <code>lha</code>. Upstream
+        is <a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>
+        (ISC, by Simon Howard); this repo
+        (<a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>)
+        adds multi-arch static-binary releases. The CLI binary is
+        intentionally named <code>lha</code> (not <code>lhasa</code>)
+        so legacy scripts invoking <code>lha x foo.lzh</code> keep
+        working. <b>Who should care</b>: anyone unpacking a
+        30-year-old <code>.lzh</code> on a system without a 1990s
+        archiver; CI pipelines that want a single 200-KB static binary
+        with no libz / libiconv / libcurl drag-in; people who need
+        <code>liblhasa</code> for C embedding (header + .pc file).
+        <b>What this site is</b>: an <a href="install.html">install
+        guide</a> (x eget / apt / brew / source build), a
+        <a href="usage.html">usage primer</a> covering the four
+        common commands (<code>l</code> / <code>x</code> /
+        <code>t</code> / <code>p</code>), a
+        <a href="formats.html">format catalogue</a> for the
+        <code>.lzh</code> / <code>.lzs</code> / <code>.pma</code>
+        families, a <a href="security.html">source-level security
+        audit</a> of the vendored decoder, and a
+        <a href="build-audit.html">build audit</a> covering the CI
+        matrix, SHA256SUMS, and reproducibility. <b>What this site is
+        not</b>: an encoder; an lzh-format extension; a
+        rewritten-from-scratch lhasa-rs.</b>
+    </p>
+</aside>
+
+<section id="about">
+    <h2>What is lhasa?</h2>
+    <p>
+        <b>Lhasa</b> is an ISC-licensed library + CLI for reading
+        <code>.lzh</code> (LHA) and <code>.lzs</code> / <code>.pma</code>
+        archives. It is intentionally decoder-only &mdash; creating
+        <code>.lzh</code> archives remains the job of the original
+        (non-free) <code>lha</code> binary built from upstream
+        <a href="https://github.com/jca02266/lha">jca02266/lha</a>.
+    </p>
+    <p>
+        <code>lhasa</code> (the library, <code>liblhasa</code>) is
+        embeddable in C applications: file managers add it for LZH
+        preview; CDNs and archives use it to surface <code>.lzh</code>
+        content on demand. The CLI binary lhasa ships is named
+        <code>lha</code> &mdash; the project deliberately mirrors the
+        original LHa for UNIX command so legacy toolchains that call
+        <code>lha x archive.lzh</code> keep working transparently.
+    </p>
+</section>
+
+<aside class="tldr" id="usage">
+    <p><b>Usage.</b> Four commands &mdash; list, extract, test, print:</p>
+    <pre><code>  lha l archive.lzh             # list (ls)
+  lha x archive.lzh             # extract
+  lha t archive.lzh             # test (CRC verify)
+  lha p archive.lzh file        # print (cat) to stdout</code></pre>
+    <p class="cpu-note">install: <code>x eget ljh-sh/lhasa</code>
+        &middot; static binary, ~200 KB, zero deps.</p>
+</aside>
+
+<section id="history">
+    <h2>Why lhasa exists (one paragraph)</h2>
+    <p>
+        <a href="https://github.com/jca02266/lha">jca02266/lha</a>
+        (the maintained <code>LHa for UNIX 1.14i</code> tree) carries a
+        custom redistribution license in its man page &mdash; it
+        permits source redistribution with attribution but
+        <i>requires</i> contacting the original maintainers before
+        binary-only redistribution. For most of the 1990s this wasn't
+        a problem because Linux distributions shipped the binary
+        directly. After Debian phased the package out of
+        <code>non-free</code> in 2012 in favor of a FOSS decoder,
+        <b>fragglet/lhasa</b> (started 2011 by Simon Howard, ISC) became
+        the standard FOSS replacement. lhasa reads every variant the
+        original lha writes (lh0..lh7, lhx, lzs, pma) but cannot
+        create new <code>.lzh</code> archives &mdash; that remains a
+        job for the original <code>lha</code> source build.
+    </p>
+    <p>
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>
+        takes the ISC source and ships it as a single static binary for
+        platforms where upstream <code>fragglet/lhasa</code> only
+        publishes source tarballs + Windows prebuilts &mdash; i.e. for
+        Linux and macOS users who want a one-line install without a
+        build step.
+    </p>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

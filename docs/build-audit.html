@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Build audit — lhasa</title>
+<meta name="description" content="How ljh-sh/lhasa builds: 5-target musl+macOS+Windows CI, SHA256SUMS verification, no external lib dependencies, OpenSSF Scorecard.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="install.html">install</a> · <a href="usage.html">usage</a> · <a href="formats.html">formats</a> · <a href="security.html">security</a> · <strong>build audit</strong> · <a href="index.html">↑ home</a></nav>
+    <div class="lang-switch"><strong>en</strong> · <a href="zh-CN/build-audit.html">zh-CN</a> · <a href="zh-TW/build-audit.html">zh-TW</a> · <a href="ja/build-audit.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>Build audit</h1>
+    <p class="tagline">CI matrix, SHA256SUMS, reproducibility, OpenSSF.</p>
+</section>
+
+<section id="matrix">
+    <h2>Build matrix</h2>
+    <p>Releases are produced by a 5-target GitHub Actions matrix on
+        native runners:</p>
+    <table>
+        <thead><tr><th>target</th><th>runner</th><th>linkage</th><th>archive</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><code>x86_64-linux-musl</code></td>
+                <td><code>ubuntu-latest</code> + Alpine 3.20 docker</td>
+                <td>fully static musl</td>
+                <td><code>.tar.gz</code></td>
+            </tr>
+            <tr>
+                <td><code>aarch64-linux-musl</code></td>
+                <td><code>ubuntu-24.04-arm</code> + Alpine 3.20 docker</td>
+                <td>fully static musl</td>
+                <td><code>.tar.gz</code></td>
+            </tr>
+            <tr>
+                <td><code>aarch64-macos</code></td>
+                <td><code>macos-14</code></td>
+                <td>static, system libc++/libSystem</td>
+                <td><code>.tar.gz</code></td>
+            </tr>
+            <tr>
+                <td><code>x86_64-macos</code></td>
+                <td><code>macos-14</code> (cross from aarch64)</td>
+                <td>static, system libc++/libSystem</td>
+                <td><code>.tar.gz</code></td>
+            </tr>
+            <tr>
+                <td><code>x86_64-windows</code></td>
+                <td><code>windows-latest</code> + MSYS2 + mingw64</td>
+                <td>fully static</td>
+                <td><code>.zip</code></td>
+            </tr>
+        </tbody>
+    </table>
+    <p>
+        aarch64-windows is deferred &mdash; MSYS2 MINGW64 doesn't ship a
+        <code>mingw-w64-aarch64-gcc</code> package. Same blocker as
+        <a href="https://github.com/ljh-sh/lha">ljh-sh/lha</a>.
+    </p>
+</section>
+
+<section id="ci">
+    <h2>Two-stage CI</h2>
+    <ol>
+        <li>
+            <b><code>build-and-test.yml</code></b> &mdash; runs on every
+            push to <code>main</code> and every pull request. Build the
+            full matrix, run
+            <a href="security.html">smoke</a>, upload
+            <code>dist/</code> as workflow artifacts (7-day retention)
+            so a human reviewer can grab any per-target binary.
+            The matrix is the gate for merging a PR.
+        </li>
+        <li>
+            <b><code>release.yml</code></b> &mdash; runs on tag push
+            (<code>v*</code>) and <code>workflow_dispatch</code>. The
+            build matrix is intentionally identical; only after the
+            per-target artifact uploads, a final job publishes to
+            GitHub Releases via <a href="https://github.com/softprops/action-gh-release">softprops/action-gh-release</a>
+            with bundled per-archive <code>.sha256</code> and a
+            top-level <code>SHA256SUMS</code>.
+        </li>
+    </ol>
+    <p class="note">
+        Two stages avoids the trigger / dispatch pain of
+        <code>gh workflow run</code>; a tag push produces a release in
+        one flow, and <code>build-and-test.yml</code> stays cheap because
+        it runs on every PR but doesn't publish.
+    </p>
+</section>
+
+<section id="smoke">
+    <h2>Smoke test policy</h2>
+    <p>
+        The smoke script
+        (<a href="https://github.com/ljh-sh/lhasa/blob/main/scripts/smoke.sh">scripts/smoke.sh</a>)
+        does two things:
+    </p>
+    <ol>
+        <li><b>Version check</b> &mdash; confirm the freshly-built
+            <code>lha</code> reports the expected version banner.</li>
+        <li><b>CLI decode round-trip</b> &mdash; run
+            <code>lha l</code> and <code>lha xq</code> against the first
+            <code>.lzh</code> / <code>.lzs</code> / <code>.pma</code>
+            under <code>upstream/lhasa/test/archives/</code> &mdash; the
+            regression corpus upstream uses for <code>make check</code>.
+            Confirms the binary we shipped actually drives liblhasa
+            end-to-end on real archive content.</li>
+    </ol>
+    <p>
+        We don't run upstream's <code>make check</code> directly: its
+        test driver sources <code>test_extract.sh</code> via relative
+        path, which breaks under the parallel-build out-of-tree pattern
+        this CI uses for musl+glibc isolation. Driving <code>lha</code>
+        against the same archive corpus covers the same ground from the
+        CLI side.
+    </p>
+</section>
+
+<section id="checksums">
+    <h2>Checksums</h2>
+    <p>
+        Every release ships:
+    </p>
+    <ul>
+        <li>One <code>.sha256</code> per archive (next to it, same
+            name with <code>.sha256</code> appended).</li>
+        <li>One top-level <code>SHA256SUMS</code> listing all archives
+            (one line each, basename-keyed so
+            <code>sha256sum -c SHA256SUMS</code> works from any
+            directory).</li>
+    </ul>
+    <p>
+        <code>x eget ljh-sh/lhasa</code> verifies each archive's
+        per-tarball <code>.sha256</code> against the
+        <code>SHA256SUMS</code> it pulls from the release. Verification
+        is end-to-end TLS + SHA256, no further signature layer.
+    </p>
+</section>
+
+<section id="deps">
+    <h2>Dependency footprint</h2>
+    <p>The vendored lhasa tree has <b>zero external library
+        dependencies</b> &mdash; no zlib, no libiconv, no libcurl, no
+        libarchive. The autotools <code>configure.ac</code> only probes
+        for the C compiler and Libtool; nothing optional.</p>
+    <p>What this means for each platform:</p>
+    <ul>
+        <li><b>Linux musl</b> &mdash; fully static, no
+            <code>glibc</code> dependency. The same binary runs on
+            Alpine, Debian, Ubuntu, RHEL, Fedora, Arch, and every
+            other Linux distro. Verified via
+            <code>ldd</code> in CI.</li>
+        <li><b>macOS</b> &mdash; system
+            <code>libc++</code> / <code>libSystem</code> only &mdash;
+            those are part of macOS and don't ship as dyld-private
+            install paths. Verified by
+            <code>otool -L</code> &mdash; the CI fails if the output
+            links to a Homebrew path.</li>
+        <li><b>Windows</b> &mdash; MinGW-built static archive; no VC
+            redistributables needed.</li>
+    </ul>
+</section>
+
+<section id="ossf">
+    <h2>OpenSSF Scorecard</h2>
+    <p>Scorecard badges for this repo will be enabled once the public
+        GitHub history accumulates enough PRs for the heuristics to be
+        meaningful. Current standing on the heuristics we already
+        satisfy:</p>
+    <ul>
+        <li><b>Code-Review</b> &mdash; PRs land through the
+            <code>build-and-test</code> matrix. The PR reviewer bot is
+            <code>reviewer-gh</code>.</li>
+        <li><b>License</b> &mdash; MIT wrapper, ISC upstream; both at
+            <code>/LICENSE</code> and <code>/NOTICE.md</code>.</li>
+        <li><b>Token-Permissions</b> &mdash; CI workflows declare
+            <code>permissions: contents: write</code> at top level
+            (write only what they need).</li>
+        <li><b>Dependency-Update-Tool</b> &mdash; Dependabot is enabled
+            on the upstream lhasa subtree path. As upstream publishes
+            new tags, a Dependabot PR opens; <code>git subtree pull</code>
+            is the manual step that follows.</li>
+        <li><b>Pinned-Dependencies</b> &mdash; GitHub Actions pinned to
+            a major + sha digest (not floating tag).</li>
+    </ul>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

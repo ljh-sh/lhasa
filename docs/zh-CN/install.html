@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>安装 —— lhasa</title>
+<meta name="description" content="一行命令装好 LZH 解码器：x eget ljh-sh/lhasa；或者 apt install lhasa / brew install lhasa；或者从源码 build。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><strong>安装</strong> · <a href="../usage.html">用法</a> · <a href="../formats.html">格式</a> · <a href="../security.html">安全</a> · <a href="../build-audit.html">构建审计</a> · <a href="../index.html">↑ 首页</a></nav>
+    <div class="lang-switch"><a href="../install.html">en</a> · <strong>zh-CN</strong> · <a href="../zh-TW/install.html">zh-TW</a> · <a href="../ja/install.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>安装</h1>
+    <p class="tagline">三条安装路径——首选静态二进制，次选系统包管理器，末选源码编译。</p>
+</section>
+
+<section id="static">
+    <h2>1. 静态二进制（一行命令）</h2>
+    <p>最快最便携的安装路径。用 <code>x eget</code>——x-cmd 对 GitHub release
+        流水线的封装：</p>
+<pre><code>x eget ljh-sh/lhasa    # ~200 KB，零依赖，多架构静态构建</code></pre>
+    <p>装好的 CLI 名字是 <code>lha</code>（不是 <code>lhasa</code>——项目故意
+        镜像原版 LHa for UNIX 命令）。安装后：</p>
+<pre><code>$ lha --help | head -1
+Lhasa v0.6.0 command line LHA tool  - Copyright (C) 2011-2025 Simon Howard</code></pre>
+
+    <h3>eget 安装做了什么</h3>
+    <ul>
+        <li>自动检测平台（linux-musl / aarch64-macos / x86_64-macos
+            / x86_64-windows）。</li>
+        <li>从 <code>github.com/ljh-sh/lhasa/releases/latest</code> 下匹配
+            的 tarball。</li>
+        <li>用上游发布的 <code>SHA256SUMS</code> 校验
+            （<a href="build-audit.html">构建审计</a> 里有 hash 怎么生成）。</li>
+        <li>把 <code>bin/lha</code> 解到
+            <code>~/.local/bin/lha</code>。</li>
+        <li>只在 <code>~/.local/</code> 里写文件。不 sudo、不装 daemon。</li>
+    </ul>
+</section>
+
+<section id="package-managers">
+    <h2>2. 系统包管理器</h2>
+    <p>如果你直接调 <code>x install lhasa</code>，x-cmd 会解析到系统官方
+        <code>lhasa</code> 包——源码和 ljh-sh/lhasa 一样。</p>
+<pre><code>x install lhasa    # apt / brew / pacman / zypper / xbps-install / pkg / pkgin</code></pre>
+    <table>
+        <thead><tr><th>发行版</th><th>安装命令</th></tr></thead>
+        <tbody>
+            <tr><td>Debian / Ubuntu / Kali / Raspbian</td>
+                <td><code>sudo apt install lhasa</code></td></tr>
+            <tr><td>macOS</td>
+                <td><code>brew install lhasa</code></td></tr>
+            <tr><td>Arch</td>
+                <td><code>yay -S lhasa-git</code></td></tr>
+            <tr><td>FreeBSD</td>
+                <td><code>pkg install archivers/lhasa</code></td></tr>
+            <tr><td>NetBSD</td>
+                <td><code>pkgin install lhasa</code></td></tr>
+            <tr><td>openSUSE</td>
+                <td><code>sudo zypper install lhasa</code></td></tr>
+            <tr><td>Void</td>
+                <td><code>sudo xbps-install lhasa</code></td></tr>
+        </tbody>
+    </table>
+</section>
+
+<section id="source">
+    <h2>3. 从源码编译</h2>
+    <p>源码在 <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>，
+        通过 <code>git subtree</code> 从
+        <a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>
+        拉下来。编译命令：</p>
+<pre><code>git clone https://github.com/ljh-sh/lhasa.git
+cd lhasa
+bash scripts/build.sh
+bash scripts/smoke.sh</code></pre>
+    <p>更新 vendoring：</p>
+<pre><code>git subtree pull --prefix=upstream/lhasa https://github.com/fragglet/lhasa.git master --squash</code></pre>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>

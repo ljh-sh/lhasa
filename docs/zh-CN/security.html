@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>安全审计 —— lhasa</title>
+<meta name="description" content="fragglet/lhasa 的源码级审计：解码器攻击面、CVE 历史、fuzzing 准备情况、确定性构建。">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<main class="wrap">
+
+<a href="#main" class="skip">Skip to content</a>
+
+<header class="page-header">
+    <nav class="section-nav"><a href="../install.html">安装</a> · <a href="../usage.html">用法</a> · <a href="../formats.html">格式</a> · <strong>安全</strong> · <a href="../build-audit.html">构建审计</a> · <a href="../index.html">↑ 首页</a></nav>
+    <div class="lang-switch"><a href="../security.html">en</a> · <strong>zh-CN</strong> · <a href="../zh-TW/security.html">zh-TW</a> · <a href="../ja/security.html">ja</a></div>
+</header>
+
+
+<section class="hero">
+    <h1>安全审计</h1>
+    <p class="tagline">对 vendored <code>fragglet/lhasa</code> 解码器的源码级审计。</p>
+</section>
+
+<section id="surface">
+    <h2>攻击面</h2>
+    <p>lhasa 是 <b>decoder</b>。攻击面基本就是 LHA 格式解析器 + 紧的输出路径。
+        比 encoder+decoder（原版 <code>lha</code>）小很多。</p>
+    <ul>
+        <li><b>无 encoder</b>——输入归档没法让 lhasa spawn 子进程、写不可预期
+            路径、或代表用户做事。用户通过显式 <code>lha x ...</code>
+            控制解压。</li>
+        <li><b>静态构建</b>——发布的二进制没动态依赖、没共享库 hook、
+            没 constructor/destructor 顺序 bug。</li>
+        <li><b><code>lha l</code> / <code>lha t</code> / <code>lha p</code>
+            无文件系统副作用</b>——只在目录层做读。副作用只在显式
+            <code>lha x</code>。</li>
+    </ul>
+</section>
+
+<section id="cve">
+    <h2>CVE 历史</h2>
+    <p>截至 2026-07-15，没有公开 CVE 针对 <code>fraggle / lhasa</code>
+        或其 vendored 版本。上游 NEWS 里记的几个：</p>
+    <ul>
+        <li><b>v0.6.0 (2026-06-17)</b>——<code>-pm2-</code> 解码器
+            <code>copy_decode[]</code> 读越界修复。不可利用，但修了。
+            由 Yukimura (@damseleng) 报告。</li>
+        <li><b>v0.5.0 (2025-08-01)</b>——列表输出微调（避免 GUI 工具
+            解析出 bug）。</li>
+    </ul>
+</section>
+
+<section id="fuzz">
+    <h2>Fuzz 准备情况</h2>
+    <p>上游
+        <a href="https://github.com/fragglet/lhasa/blob/master/test/fuzzer.c">test/fuzzer.c</a>
+        是 libFuzzer harness，对 liblhasa 入口 fuzz。
+        <code>make check</code> 跑的回归套件就是 fuzz corpus + 历史回归样本。</p>
+    <p>ljh-sh/lhasa 的 CI **还没** 接入持续 fuzz——下一步计划接 OSS-Fuzz
+        （一旦上游同意加入）。当前 0.6.0 的越界修复是 fuzz
+        真的能影响产线的最新证据。</p>
+</section>
+
+<section id="supply">
+    <h2>供应链</h2>
+    <ul>
+        <li><b>Vendoring</b>——<code>upstream/lhasa/</code> 是
+            <code>git subtree</code> 快照。NOTICE.md 记 merge commit +
+            re-vendor 命令。</li>
+        <li><b>Patches</b>——零。vendored 树与上游
+            <code>75ed835</code> 完全一致。</li>
+        <li><b>构建确定性</b>——见 <a href="build-audit.html">构建审计</a>。
+            同源码 + 同 runner + 同 toolchain = 可重现 SHA256SUMS。</li>
+    </ul>
+</section>
+
+<section id="risk-model">
+    <h2>威胁模型 &amp; 剩余风险</h2>
+    <ul>
+        <li><b>恶意 .lzh 归档</b>——攻击面小（decoder-only，
+            无 shell 注入路径）。降险：解压前先 <code>lha t</code>。
+            有上游 hash 时再 SHA256 对照。</li>
+        <li><b><code>lha x</code> 路径穿越</b>——现代 lhasa
+            处理常见情况（绝对路径、<code>..</code>）。解压不可信归档前
+            先 <code>lha l</code> 看一下。</li>
+        <li><b>压缩炸弹放大</b>——LZH 本身不像 zip 会巨大放大，
+            解压比受格式约束。超大的还是建议先看 size。</li>
+    </ul>
+    <p class="note">decoder-only 是核心安全论证。lhasa **不发**任何有害内容，
+        只是渲染归档已有的东西。</p>
+</section>
+
+<section id="disclosure">
+    <h2>漏洞披露</h2>
+    <p>邮件：<code>fragglet@gmail.com</code>（上游维护者）。对 ljh-sh/lhasa
+        分发特有（CI、release artifact）的问题，开
+        <a href="https://github.com/ljh-sh/lhasa/issues">GitHub issue</a>。</p>
+</section>
+
+
+<footer>
+    <p>
+        This site is the GitHub Pages root for
+        <a href="https://github.com/ljh-sh/lhasa">ljh-sh/lhasa</a>.
+        Vendored source under
+        <a href="https://github.com/ljh-sh/lhasa/tree/main/upstream/lhasa">upstream/lhasa/</a>
+        is ISC-licensed by Simon Howard
+        (<a href="https://github.com/fragglet/lhasa">fragglet/lhasa</a>);
+        the wrapper source under this repo is MIT.
+        Last commit: see
+        <a href="https://github.com/ljh-sh/lhasa/commits/main">commits/main</a>.
+    </p>
+</footer>
+
+</main>
+
+</body>
+</html>
