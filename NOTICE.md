@@ -3,9 +3,9 @@
 This repository (`ljh-sh/lhasa`) provides self-contained, statically-linked
 builds of **lhasa** (the ISC-licensed LZH/LZS/PMarc decoder) and the
 build/packaging layer around it. The CLI binary is named `lha` because
-that is the upstream-distributed binary name — the project deliberately
-provides an interface-compatible `lha` replacement for the non-free
-upstream `ljh-sh/lha` (which was retired 2026-07-15).
+that is the upstream `fragglet/lhasa` `Makefile.am`'s installed name
+(`bin_PROGRAMS=lha`) — the project deliberately ships a
+`lha`-compatible interface.
 
 ## Wrapper license (this repo's own files)
 

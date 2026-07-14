@@ -14,8 +14,8 @@
 <a href="#main" class="skip">Skip to content</a>
 
 <header class="page-header">
-    <nav class="section-nav">placeholder-section-nav</nav>
-    <div class="lang-switch">placeholder-lang-switch</div>
+    <nav class="section-nav"><a href="install.html">install</a> · <a href="usage.html">usage</a> · <a href="formats.html">formats</a> · <a href="security.html">security</a> · <strong>build audit</strong> · <a href="index.html">↑ home</a></nav>
+    <div class="lang-switch"><strong>en</strong> · <a href="zh-CN/build-audit.html">zh-CN</a> · <a href="zh-TW/build-audit.html">zh-TW</a> · <a href="ja/build-audit.html">ja</a></div>
 </header>
 
 
@@ -65,8 +65,10 @@
     </table>
     <p>
         aarch64-windows is deferred &mdash; MSYS2 MINGW64 doesn't ship a
-        <code>mingw-w64-aarch64-gcc</code> package. Same blocker as
-        <a href="https://github.com/ljh-sh/lha">ljh-sh/lha</a>.
+        <code>mingw-w64-aarch64-gcc</code> package. Restoring would
+        require either LLVM clang with
+        <code>-target aarch64-w64-windows-msvc</code>, or building
+        mingw-w64-aarch64 from source.
     </p>
 </section>
 

@@ -1495,8 +1495,10 @@ def build_audit_en():
     </table>
     <p>
         aarch64-windows is deferred &mdash; MSYS2 MINGW64 doesn't ship a
-        <code>mingw-w64-aarch64-gcc</code> package. Same blocker as
-        <a href="https://github.com/ljh-sh/lha">ljh-sh/lha</a>.
+        <code>mingw-w64-aarch64-gcc</code> package. Restoring would
+        require either LLVM clang with
+        <code>-target aarch64-w64-windows-msvc</code>, or building
+        mingw-w64-aarch64 from source.
     </p>
 </section>
 
@@ -1656,8 +1658,9 @@ def build_audit_zh_cn():
             <tr><td><code>x86_64-windows</code></td><td><code>windows-latest</code> + MSYS2 + mingw64</td><td>完全静态</td><td><code>.zip</code></td></tr>
         </tbody>
     </table>
-    <p>aarch64-windows 暂时不做——MSYS2 MINGW64 没
-        <code>mingw-w64-aarch64-gcc</code> 包，跟 ljh-sh/lha 同样的瓶颈。</p>
+    <p>aarch64-windows 暂不做——MSYS2 MINGW64 没 <code>mingw-w64-aarch64-gcc</code>
+        包，需要 LLVM clang 加 <code>-target aarch64-w64-windows-msvc</code>
+        或者从源码编译 mingw-w64-aarch64。</p>
 </section>
 
 <section id="ci">

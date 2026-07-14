@@ -28,43 +28,6 @@
 {% endif %}
 
 <header class="page-header">
-  <nav class="section-nav">
-    {% assign labels_for_lang = site.data.sections[lang_code].labels %}
-    {% assign sections_for_lang = site.data.sections[lang_code].sections %}
-
-    {% for sec in sections_for_lang %}
-      {% assign i = forloop.index0 %}
-      {% assign sec_label = labels_for_lang[i] %}
-      {% if sec == section %}
-        <strong>{{ sec_label }}</strong>
-      {% else %}
-        <a href="{{ prefix }}{{ sec }}.html">{{ sec_label }}</a>
-      {% endif %}
-      {% unless forloop.last %} · {% endunless %}
-    {% endfor %}
-
-    {% assign home_index = 6 %}
-    {% assign home_label = labels_for_lang[home_index] %}
-    · <a href="{{ prefix }}index.html">{{ home_label }}</a>
-  </nav>
-
-  <div class="lang-switch">
-    {% assign langs = "en,zh-CN,zh-TW,ja" | split: "," %}
-    {% for lang_target in langs %}
-      {% assign href = prefix %}
-      {% if lang_target == 'en' %}
-        {{ href }}{{ section }}.html
-      {% else %}
-        {{ href }}{{ lang_target }}/{{ section }}.html
-      {% endif %}
-      {% if lang_target == section %}{% assign switch_label = lang_target %}{% endif %}
-
-      {% if lang_target == lang_code %}
-        <strong>{{ lang_target }}</strong>
-      {% else %}
-        <a href="{{ href }}">{{ lang_target }}</a>
-      {% endif %}
-      {% unless forloop.last %} · {% endunless %}
-    {% endfor %}
-  </div>
+    <nav class="section-nav"><a href="../install.html">install</a> · <a href="../usage.html">usage</a> · <a href="../formats.html">formats</a> · <a href="../security.html">security</a> · <a href="../build-audit.html">build audit</a> · <a href="../index.html">↑ home</a></nav>
+    <div class="lang-switch"><strong>en</strong> · <a href="../zh-CN/header.html">zh-CN</a> · <a href="../zh-TW/header.html">zh-TW</a> · <a href="../ja/header.html">ja</a></div>
 </header>

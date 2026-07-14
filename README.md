@@ -8,18 +8,8 @@ applefile / zlib / libiconv to install on the target machine — just
 download, extract, run.
 
 This is a **distribution repo** (lhasa source + build/packaging
-scripts + CI), modeled on `ljh-sh/lha` (now-private) and `ljh-sh/kenlm`.
-See `NOTICE.md` for the upstream lhasa license terms that apply to
-the binary.
-
-## Replacement for non-free `ljh-sh/lha`
-
-`ljh-sh/lha` retired on 2026-07-15 (upstream binary-redistribution
-restriction in the original LHa for UNIX terms). This repo is the
-canonical successor for **reading** `.lzh` / `.lzs` / `.pma` files
-on modern systems where no upstream package manager ships the
-non-free lha. For the rarer `.lzh` creation use cases, build
-`jca02266/lha` from source under its §2a permissions.
+scripts + CI). See `NOTICE.md` for the upstream lhasa license terms
+that apply to the binary.
 
 The CLI binary name is intentionally `lha` (not `lhasa`): lhasa
 ships an interface-compatible `lha` replacement for the original
@@ -66,7 +56,7 @@ intentionally no separate glibc/dynamic Linux variant.
 > aarch64-windows and additional targets are deferred. Restoring
 > aarch64-windows would require either LLVM clang with
 > `-target aarch64-w64-windows-msvc`, or building mingw-w64-aarch64
-> from source — same blocker as in `ljh-sh/lha`.
+> from source.
 
 ## Quick check after install
 
@@ -109,20 +99,3 @@ GitHub Release.
 The CI does **not** run smoke on Windows-target builds because the
 upstream test fixtures hardcode Linux /tmp paths. Linux + macOS
 build-and-test fully exercise the regression suite on every PR.
-
-## Where ljh-sh/lhasa fits in the ljh-sh dist regime
-
-Sibling repos to ljh-sh/lhasa (same scripts/CI/release-yaml pattern):
-
-| repo | upstream | wrapper license |
-|---|---|---|
-| `ljh-sh/lha` (now private) | `jca02266/lha` (LHa for UNIX 1.14i) | MIT |
-| `ljh-sh/kenlm` | `kpu/kenlm` (C++/Boost) | GPL-3 (LGPL upstream) |
-| `ljh-sh/upxz` | own (Rust self-extractor) | MIT |
-| `ljh-sh/lhasa` | `fragglet/lhasa` (LZH/LZS/PMarc decoder) | MIT wrapper, ISC upstream |
-
-After ljh-sh/lha went private, lhasa in main (Debian/Ubuntu/Homebrew/Arch)
-fills most of the LZH-decoding gap on Linux/macOS. This repo (ljh-sh/lhasa)
-ships **statically-linked** binaries to do the same on distros that
-don't have lhasa packaged, and on Windows where there's no canonical
-install channel.
