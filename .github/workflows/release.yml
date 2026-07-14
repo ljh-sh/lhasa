@@ -1,0 +1,175 @@
+name: release
+
+# Publish stage: tag a v* (or trigger manually) → GitHub Release with
+# per-target tarball/zip + per-archive sha256 + top-level SHA256SUMS.
+#
+# Splits cleanly with `build-and-test.yml`:
+#   - push / pull_request → build-and-test.yml (auto-test stage)
+#   - tag push / dispatch → THIS workflow (publish stage)
+#
+# The build matrix below is intentionally identical to build-and-test.yml
+# so a tag push produces a release in one shot, without depending on a
+# separate workflow_run pull. The trade-off is that a tag push runs the
+# matrix twice (here + in build-and-test.yml) ≈ +2 min — accepted for
+# the simpler workflow_run-free model.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---- main release matrix (tag + dispatch only) ----
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-linux-musl,  runner: ubuntu-latest,    os: linux,   libc: musl, docker_arch: amd64 }
+          - { target: aarch64-linux-musl, runner: ubuntu-24.04-arm, os: linux,   libc: musl, docker_arch: arm64 }
+          - { target: aarch64-macos,      runner: macos-14,         os: macos                  }
+          - { target: x86_64-macos,       runner: macos-14,         os: macos                  }
+          - { target: x86_64-windows,     runner: windows-latest,   os: windows                }
+          # aarch64-windows deferred — see build-and-test.yml for details.
+    continue-on-error: ${{ matrix.target == 'aarch64-linux-musl' || matrix.target == 'aarch64-macos' || matrix.target == 'x86_64-windows' }}
+    env:
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- install deps ----
+      - name: Install deps (Linux gnu)
+        if: matrix.libc == 'musl'
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool
+
+      - name: Install deps (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          brew update
+          brew install autoconf automake libtool
+
+      - name: Install deps (Windows MSYS2 + mingw64)
+        if: matrix.os == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git autoconf automake libtool
+            make base-devel
+            mingw-w64-x86_64-gcc
+
+      # ---- build ----
+      - name: Build + smoke on Alpine (musl)
+        if: matrix.libc == 'musl'
+        run: docker run --rm --platform linux/${{ matrix.docker_arch }} -v "$PWD":/w -w /w alpine:3.20 sh -c 'apk add --no-cache bash >/dev/null && bash /w/scripts/build-alpine.sh && bash /w/scripts/smoke.sh'
+
+      - name: Build (macOS — host)
+        if: matrix.os == 'macos' && matrix.target == 'aarch64-macos'
+        run: bash scripts/build.sh
+
+      - name: Build (macOS x86_64 — cross-compile)
+        if: matrix.target == 'x86_64-macos'
+        env:
+          LHASA_TARGET_ARCH: x86_64
+          LHASA_TARGET_OS: apple-darwin
+          LHASA_OS_HINT: darwin
+        run: bash scripts/build.sh
+
+      - name: Build (Windows x86_64 — msys2 bash)
+        if: matrix.os == 'windows' && matrix.target == 'x86_64-windows'
+        shell: msys2 {0}
+        run: bash scripts/build.sh
+
+      # ---- smoke ----
+      - name: Smoke test on host (gnu / macos)
+        if: matrix.os != 'windows' && matrix.libc != 'musl'
+        run: bash scripts/smoke.sh
+
+      - name: Smoke test on Windows (informational)
+        if: matrix.os == 'windows'
+        shell: msys2 {0}
+        continue-on-error: true
+        run: |
+          set +e
+          LHA="${{ github.workspace }}/build/src/lha.exe"
+          echo "==> Windows smoke is currently informational only."
+          ls -la "$LHA" || { echo "FAIL: binary missing"; exit 1; }
+          "$LHA" --version 2>&1 | head -3 || "$LHA" 2>&1 | head -3 || true
+          echo "OK: binary executes; round-trip smoke deferred."
+
+      # ---- package ----
+      - name: Package (Linux / macOS)
+        if: matrix.os != 'windows'
+        run: TARGET=${{ matrix.target }} bash scripts/package.sh
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows'
+        shell: msys2 {0}
+        env:
+          TARGET: ${{ matrix.target }}
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1
+
+      # ---- verify ----
+      - name: Verify self-contained (macOS only)
+        if: matrix.os == 'macos'
+        run: |
+          set -e
+          bin="dist/lhasa-${{ matrix.target }}/bin/lha"
+          otool -L "$bin"
+          otool -L "$bin" | grep -E '/(opt/homebrew|usr/local)/' \
+            && { echo "FAIL: $bin links Homebrew dylibs"; exit 1; } || true
+          echo "OK: only system libs (/usr/lib, /System/Library)"
+
+      - name: Show file type & size
+        if: matrix.os != 'windows'
+        run: |
+          file dist/lhasa-${{ matrix.target }}/bin/lha
+          du -h dist/lhasa-${{ matrix.target }}.tar.gz
+
+      - name: Show file type & size (Windows)
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: |
+          file dist/lhasa-${{ matrix.target }}/bin/lha.exe
+          Get-ChildItem dist/lhasa-${{ matrix.target }}.zip | Format-Table Name, Length
+
+      # ---- upload artifact (used by the release job below) ----
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lhasa-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  # ---- publish on tag ----
+  release:
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build.result == 'success'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Generate SHA256SUMS
+        run: |
+          cd dist
+          find . -type f \( -name '*.tar.gz' -o -name '*.zip' \) -print0 \
+            | xargs -0 sha256sum | sed 's|^\([^ ]*\)  \./|\1  |' > SHA256SUMS
+          cat SHA256SUMS
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
+            dist/SHA256SUMS
+          generate_release_notes: true

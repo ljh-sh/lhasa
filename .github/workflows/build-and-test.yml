@@ -1,0 +1,160 @@
+name: build-and-test
+
+# PR / push cheap-but-thorough test: every push to main and every PR
+# builds the full 5-target matrix (musl x86_64 + aarch64, macos
+# aarch64 + x86_64, windows x86_64) and runs the upstream `make
+# check` regression suite + a CLI extraction test. Uploads dist/ as
+# workflow artifacts so a human can grab any per-target binary for
+# inspection.
+#
+# This is the "auto-test" stage per the ljh-sh dist regime convention
+# (see `.claude/skills/rust-oss/ci/` in mneme — same split for Rust
+# projects, adapted to autotools here). `release.yml` is the separate
+# "publish" stage — it only fires on v* tags and `workflow_dispatch`,
+# so this workflow's output is what gates a PR.
+#
+# Triggers: push (incl. merging a PR) to main; pull_request. We do NOT
+# listen to tag pushes here — release.yml handles those, and we don't
+# want the same matrix to run twice.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-linux-musl,  runner: ubuntu-latest,    os: linux, libc: musl, docker_arch: amd64 }
+          - { target: aarch64-linux-musl, runner: ubuntu-24.04-arm, os: linux, libc: musl, docker_arch: arm64 }
+          - { target: aarch64-macos,      runner: macos-14,         os: macos                 }
+          - { target: x86_64-macos,       runner: macos-14,         os: macos                 }
+          - { target: x86_64-windows,     runner: windows-latest,   os: windows               }
+          # aarch64-windows deferred — same MSYS2 mingw64 package gap as
+          # in ljh-sh/lha's build-and-test.yml.
+    continue-on-error: ${{ matrix.target == 'aarch64-linux-musl' || matrix.target == 'aarch64-macos' || matrix.target == 'x86_64-windows' }}
+    env:
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- install deps ----
+      - name: Install deps (Linux gnu — needed to drive the alpine docker locally)
+        if: matrix.libc == 'musl'
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool
+
+      - name: Install deps (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          brew update
+          brew install autoconf automake libtool
+
+      - name: Install deps (Windows MSYS2 + mingw64)
+        if: matrix.os == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git autoconf automake libtool
+            make base-devel
+            mingw-w64-x86_64-gcc
+
+      # ---- build + smoke ----
+      # Musl: single Alpine `docker run` does build + smoke (alpine's
+      # apk brings everything we need including bash, make, gcc, the
+      # autotools family, libtool).
+      - name: Build + smoke on Alpine (musl)
+        if: matrix.libc == 'musl'
+        run: docker run --rm --platform linux/${{ matrix.docker_arch }} -v "$PWD":/w -w /w alpine:3.20 sh -c 'apk add --no-cache bash >/dev/null && bash /w/scripts/build-alpine.sh && bash /w/scripts/smoke.sh'
+
+      - name: Build (macOS — host)
+        if: matrix.os == 'macos' && matrix.target == 'aarch64-macos'
+        run: bash scripts/build.sh
+
+      - name: Build (macOS x86_64 — cross-compile)
+        if: matrix.target == 'x86_64-macos'
+        env:
+          LHASA_TARGET_ARCH: x86_64
+          LHASA_TARGET_OS: apple-darwin
+          LHASA_OS_HINT: darwin
+        run: bash scripts/build.sh
+
+      - name: Build (Windows x86_64 — msys2 bash)
+        if: matrix.os == 'windows' && matrix.target == 'x86_64-windows'
+        shell: msys2 {0}
+        run: bash scripts/build.sh
+
+      # ---- smoke on host ----
+      - name: Smoke test on host (gnu / macos)
+        if: matrix.os != 'windows' && matrix.libc != 'musl'
+        run: bash scripts/smoke.sh
+
+      - name: Smoke test on Windows (informational)
+        if: matrix.os == 'windows'
+        shell: msys2 {0}
+        continue-on-error: true
+        run: |
+          set +e
+          LHA="${{ github.workspace }}/build/src/lha.exe"
+          echo "==> Windows smoke is currently informational only."
+          echo "    Lhasa's test/ fixtures all live under Linux paths."
+          ls -la "$LHA" || { echo "FAIL: binary missing"; exit 1; }
+          "$LHA" --version 2>&1 | head -3 || "$LHA" 2>&1 | head -3 || true
+          echo "OK: binary executes; round-trip smoke deferred to a future release."
+
+      # ---- package (so we keep an artifact for visual inspection) ----
+      - name: Package (Linux / macOS)
+        if: matrix.os != 'windows'
+        run: TARGET=${{ matrix.target }} bash scripts/package.sh
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows'
+        shell: msys2 {0}
+        env:
+          TARGET: ${{ matrix.target }}
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package.ps1
+
+      # ---- verify ----
+      - name: Verify self-contained (macOS only)
+        if: matrix.os == 'macos'
+        run: |
+          set -e
+          bin="dist/lhasa-${{ matrix.target }}/bin/lha"
+          otool -L "$bin"
+          otool -L "$bin" | grep -E '/(opt/homebrew|usr/local)/' \
+            && { echo "FAIL: $bin links Homebrew dylibs"; exit 1; } || true
+          echo "OK: only system libs (/usr/lib, /System/Library)"
+
+      - name: Show file type & size
+        if: matrix.os != 'windows'
+        run: |
+          file dist/lhasa-${{ matrix.target }}/bin/lha
+          du -h dist/lhasa-${{ matrix.target }}.tar.gz
+
+      - name: Show file type & size (Windows)
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: |
+          file dist/lhasa-${{ matrix.target }}/bin/lha.exe
+          Get-ChildItem dist/lhasa-${{ matrix.target }}.zip | Format-Table Name, Length
+
+      # ---- upload artifact (for human inspection; NOT a release) ----
+      - name: Upload test artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lhasa-test-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7

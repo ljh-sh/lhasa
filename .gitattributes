@@ -1,0 +1,9 @@
+*           text=auto eol=lf
+*.c          text eol=lf
+*.h          text eol=lf
+*.md         text eol=lf
+*.sh         text eol=lf
+*.ps1        text eol=lf crlf
+*.yml        text eol=lf
+.gitattributes  text eol=lf
+.gitignore   text eol=lf
