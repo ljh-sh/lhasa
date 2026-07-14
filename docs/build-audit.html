@@ -14,14 +14,14 @@
 <a href="#main" class="skip">Skip to content</a>
 
 <header class="page-header">
-    <nav class="section-nav"><a href="install.html">install</a> · <a href="usage.html">usage</a> · <a href="formats.html">formats</a> · <a href="security.html">security</a> · <strong>build audit</strong> · <a href="index.html">↑ home</a></nav>
-    <div class="lang-switch"><strong>en</strong> · <a href="zh-CN/build-audit.html">zh-CN</a> · <a href="zh-TW/build-audit.html">zh-TW</a> · <a href="ja/build-audit.html">ja</a></div>
+    <nav class="section-nav">placeholder-section-nav</nav>
+    <div class="lang-switch">placeholder-lang-switch</div>
 </header>
 
 
 <section class="hero">
     <h1>Build audit</h1>
-    <p class="tagline">CI matrix, SHA256SUMS, reproducibility, OpenSSF.</p>
+    <p class="tagline">CI matrix, SHA256SUMS, reproducibility.</p>
 </section>
 
 <section id="matrix">
@@ -175,25 +175,32 @@
 
 <section id="ossf">
     <h2>OpenSSF Scorecard</h2>
-    <p>Scorecard badges for this repo will be enabled once the public
-        GitHub history accumulates enough PRs for the heuristics to be
-        meaningful. Current standing on the heuristics we already
-        satisfy:</p>
+    <p class="note">OpenSSF Scorecard badges are not currently enabled
+        for this repository. Two prerequisites that would need to
+        happen before they&rsquo;re meaningful:</p>
     <ul>
-        <li><b>Code-Review</b> &mdash; PRs land through the
-            <code>build-and-test</code> matrix. The PR reviewer bot is
-            <code>reviewer-gh</code>.</li>
-        <li><b>License</b> &mdash; MIT wrapper, ISC upstream; both at
-            <code>/LICENSE</code> and <code>/NOTICE.md</code>.</li>
-        <li><b>Token-Permissions</b> &mdash; CI workflows declare
-            <code>permissions: contents: write</code> at top level
-            (write only what they need).</li>
-        <li><b>Dependency-Update-Tool</b> &mdash; Dependabot is enabled
-            on the upstream lhasa subtree path. As upstream publishes
-            new tags, a Dependabot PR opens; <code>git subtree pull</code>
-            is the manual step that follows.</li>
-        <li><b>Pinned-Dependencies</b> &mdash; GitHub Actions pinned to
-            a major + sha digest (not floating tag).</li>
+        <li><b>Upstream commit signing</b> &mdash; Scorecard's
+            <em>Signed-Commits</em> check requires upstream
+            <code>fragglet/lhasa</code> maintainer
+            (Simon Howard) to GPG-sign release commits. Currently
+            the subtree pull records the upstream SHA in the merge
+            commit body, but it&rsquo;s not cryptographically
+            bound to an identity.</li>
+        <li><b>Reproducible builds</b> &mdash; Scorecard would
+            promote us if independent rebuilds of the release tarballs
+            (from source) produce matching SHA256SUMS. We don&rsquo;t
+            have that infrastructure yet; CI matrix builds
+            per-target binaries, but no second channel re-derives
+            the hashes from a clean source checkout.</li>
+    </ul>
+    <p>The repo currently passes most non-cryptographic Scorecard
+        checks (License, Token-Permissions,
+        Pinned-Dependencies). To make the OpenSSF story honest we
+        need to ship the two items above before flipping the badge
+        on. The full per-check scorecard inspection is left as a
+        future task; for now this section documents what&rsquo;s
+        missing rather than claiming a passing posture.</p>
+</section>
     </ul>
 </section>
 
