@@ -69,7 +69,6 @@ jobs:
             git autoconf automake libtool
             make base-devel
             mingw-w64-x86_64-gcc
-            mingw-w64-cross-toolchain-aarch64
 
       # ---- build + smoke ----
       # Musl: single Alpine `docker run` does build + smoke (alpine's
