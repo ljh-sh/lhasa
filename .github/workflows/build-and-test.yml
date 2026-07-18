@@ -41,8 +41,7 @@ jobs:
           - { target: aarch64-macos,      runner: macos-14,         os: macos                 }
           - { target: x86_64-macos,       runner: macos-14,         os: macos                 }
           - { target: x86_64-windows,     runner: windows-latest,   os: windows               }
-          # aarch64-windows deferred — same MSYS2 mingw64 package gap as
-          # in ljh-sh/lha's build-and-test.yml.
+          - { target: aarch64-windows,    runner: windows-11-arm,   os: windows               }
     continue-on-error: ${{ matrix.target == 'aarch64-linux-musl' || matrix.target == 'aarch64-macos' || matrix.target == 'x86_64-windows' }}
     env:
       TARGET: ${{ matrix.target }}
@@ -70,6 +69,7 @@ jobs:
             git autoconf automake libtool
             make base-devel
             mingw-w64-x86_64-gcc
+            mingw-w64-cross-toolchain-aarch64
 
       # ---- build + smoke ----
       # Musl: single Alpine `docker run` does build + smoke (alpine's
@@ -94,6 +94,18 @@ jobs:
       - name: Build (Windows x86_64 — msys2 bash)
         if: matrix.os == 'windows' && matrix.target == 'x86_64-windows'
         shell: msys2 {0}
+        run: bash scripts/build.sh
+
+      - name: Build (Windows aarch64 — cross via clang)
+        if: matrix.target == 'aarch64-windows'
+        shell: msys2 {0}
+        env:
+          LHASA_TARGET_ARCH: aarch64
+          LHASA_TARGET_OS: windows-gnu
+          LHASA_OS_HINT: windows
+          CC: clang
+          CFLAGS: -target aarch64-w64-windows-gnu -O2
+          LDFLAGS: -target aarch64-w64-windows-gnu
         run: bash scripts/build.sh
 
       # ---- smoke on host ----
