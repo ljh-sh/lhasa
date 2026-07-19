@@ -7,8 +7,8 @@ title: "lhasa"
 description: "Free LHA/LZH/PMarc decoder + liblhasa, distributed as a single statically-linked binary for Linux/macOS/Windows. ISC upstream by Simon Howard; vendored by ljh-sh."
 
 # Site served at https://<owner>.github.io/lhasa/
-baseurl: /lhasa
-url:    https://ljh-sh.github.io
+baseurl: ""
+url:    https://lhasa.ljh.sh
 
 markdown: kramdown
 highlighter: rouge
